@@ -1,0 +1,40 @@
+<li id="node-list-node-{{ node.node_id|hex }}" data-node-id="{{ node.node_id|hex }}" hx-swap-oob="if-exists" hx-on:click="selectNode(this)">
+    <div hx-get="/node/{{ node.node_id|hex }}/details.html" hx-target="#sidebar-details" hx-swap="innerHTML">
+        <span class="node-name">
+            {%- if let (Some(short_name), Some(long_name)) = (node.short_name|as_ref, node.long_name|as_ref) -%}
+                <strong>[{{ short_name }}]</strong> {{ long_name }}
+            {%- else -%}
+                <em>{{ node.user_id }}</em>
+            {%- endif -%}
+        </span>
+        {%- if let (Some(last_rx_time), Some(last_rx_snr), Some(last_rx_rssi)) = (node.last_rx_time, node.last_rx_snr, node.last_rx_rssi) -%}
+            <br />
+            {{- self::icon("antenna")|safe ~}} <time datetime="{{ self::format_timestamp(last_rx_time) }}" class="relative">{{ last_rx_time }}</time>
+
+            {%- if last_rx_snr != 0.0|as_ref && last_rx_rssi != 0|as_ref ~%}
+                <small>({{"SNR: {:.1}, RSSI: {}"|format(last_rx_snr, last_rx_rssi)}})</small>
+            {%- endif -%}
+        {%- endif -%}
+        {%- if let (icon, info_string) = self::get_battery_info(node.voltage, node.battery_level) -%}
+            <br />{{- self::icon(icon)|safe ~}} {{ info_string -}}
+        {%- endif %}
+
+        {%- if let (Some(temperature), Some(relative_humidity), Some(barometric_pressure)) = (node.temperature, node.relative_humidity, node.barometric_pressure) -%}
+            <br />
+            {{- self::icon("thermometer")|safe ~}} 
+            {% if temperature != 0.0|as_ref %}
+                {{~ "{:.1}°C"|format(temperature) ~}}
+            {% endif %}
+            {% if relative_humidity != 0.0|as_ref %}
+                {{~ "{:.0}%"|format(relative_humidity) ~}}
+            {% endif %}
+            {% if barometric_pressure != 0.0|as_ref %}
+                {{~ "{:.1}hPa"|format(barometric_pressure) ~}}
+            {% endif %}
+        {%- endif -%}
+
+        {%- if let Some(geom) = geom -%}
+            <div data-geojson="{{geom}}"></div>
+        {%- endif -%}
+    </div>
+</li>

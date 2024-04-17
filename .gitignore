@@ -1,0 +1,14 @@
+.stignore
+debug/
+target/
+build/
+*.pdb
+.vscode
+.env
+*.db
+*.db-shm
+*.db-wal
+/*.sql
+meshstellar.toml
+.sqlx
+docker-compose.yml

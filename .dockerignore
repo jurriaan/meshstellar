@@ -1,0 +1,11 @@
+Containerfile
+Containerfile*
+target
+script
+debug
+*.db
+*.db-shm
+*.db-wal
+.env
+meshstellar.toml
+build

@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+{% block body %}
+<script type="text/hyperscript">
+def updateNodes()
+  tell <.node-name.fetch/> in <.tab-content-container />
+    set selector to `#node-list-node-${you@data-node-id} .node-name`
+    get the first <${selector}/> in body then   
+    if it exists set your innerHTML to its innerHTML
+end
+</script>
+  <div id="map"></div>
+  <aside id="sidebar" hidden>
+    <div id="resizer"></div>
+    <div id="sidebar-main">
+      <div class="tab-content-container">
+        <section id="nodes" class="tab-content">
+          <h1>Nodes</h1>
+          <ol class="node-list" sse-swap="update-node" hx-swap="afterbegin" _="on htmx:afterSwap debounced at 100ms updateNodes()">
+          </ol>
+          <button class="list-action" _="
+            on click 
+            tell the previous .node-list 
+              toggle .show-old on you
+              send refreshMap to body
+              if you match .show-old
+              set my innerHTML to 'Hide old nodes'
+              else set my innerHTML to 'Show old nodes'
+          ">Show old nodes</button>
+        </section>
+
+        <section id="packets" class="tab-content">
+          <h1>Packets</h1>
+          <ol class="packet-list" sse-swap="mesh-packet,text-message" hx-swap="afterbegin" _="
+            on htmx:afterSwap debounced at 100ms
+              remove <li:nth-child(n+100) /> from me
+              updateNodes()
+          ">
+          </ol>
+        </section>
+
+        <section id="messages" class="tab-content">
+          <h1>Messages</h1>
+          <ol class="packet-list" sse-swap="text-message" hx-swap="afterbegin" _="
+            on htmx:afterSwap debounced at 100ms
+              remove <li:nth-child(n+100) /> from me
+              updateNodes()
+          ">
+          </ol>
+        </section>
+      </div>
+
+      <nav class="tab-bar">
+        <a href="#nodes">Nodes</a>
+        <a href="#packets">Packets</a>
+        <a href="#messages">Messages</a>
+      </nav>
+    </div>
+
+    <div id="sidebar-details" style="display: none;" _="
+      on htmx:afterSwap debounced at 50ms
+        hide #sidebar-main
+        show #sidebar-details
+    ">
+    </div>
+  </aside>
+{% endblock %}

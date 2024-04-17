@@ -1,0 +1,5 @@
+[toolchain]
+channel = "stable"
+components = [ "cargo", "rustc", "rust-std" ]
+targets = [ "x86_64-unknown-linux-musl", "x86_64-pc-windows-gnu" ]
+profile = "minimal"

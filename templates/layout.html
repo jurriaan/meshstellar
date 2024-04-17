@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meshstellar ✨</title>
+    <link rel="stylesheet" href="/static/application.css.gz">
+    <link rel="stylesheet" href="/static/maplibre-gl.css.gz">
+    <script src="/static/htmx.min.js.gz"></script>
+    <script src="/static/sse.min.js.gz"></script>
+    <script src="/static/_hyperscript.min.js.gz"></script>
+    <script src="/static/maplibre-gl.js.gz"></script>
+    <script src="/static/pmtiles.min.js.gz"></script>
+    <script src="/static/application.js.gz"></script>
+</head>
+
+<body hx-ext="custom,morph,sse" sse-connect="/events">
+    {{ self::SVG_ICONS_CONTENT|safe }}
+    {% block body %}{% endblock %}
+</body>
+
+</html>

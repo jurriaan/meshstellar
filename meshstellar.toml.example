@@ -1,0 +1,13 @@
+http_addr = "127.0.0.1:3000"
+mqtt_auth = true
+mqtt_username = "username"
+mqtt_password = "password"
+mqtt_port = 1883
+mqtt_keep_alive = 15
+mqtt_client_id = "meshstellar"
+mqtt_topic = "meshtastic/#"
+database_url = "sqlite://meshstellar.db?mode=rwc"
+map_glyphs_url = "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf"
+open_browser = true
+# if hosting pmtiles:
+# meshstellar_pmtiles_url = "" 

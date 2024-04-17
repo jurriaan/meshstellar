@@ -1,0 +1,97 @@
+<li id="packet-{{packet.id}}">
+    <dl>
+        <dt>From</dt>
+        <dd><span class="node-name fetch" data-node-id="{{ packet.from_id|hex }}">!{{ packet.from_id|hex }}</span></dd>
+        {% if packet.to_id > 0 && packet.to_id < 0xffffffff %}
+        <dt>To</dt>
+        <dd><span class="node-name fetch" data-node-id="{{ packet.to_id|hex }}">!{{ packet.to_id|hex }}</span></dd>
+        {% endif %}
+        <dt>Sent</dt>
+        <dd>
+        {{- self::icon("antenna")|safe ~}} <time datetime="{{ self::format_timestamp(packet.rx_time) }}" class="relative">{{ packet.rx_time }}</time>
+            {% if packet.rx_rssi != 0 && packet.rx_snr != 0.0 %}
+                <small>({{"SNR: {:.1}, RSSI: {}"|format(packet.rx_snr, packet.rx_rssi)}})</small>
+            {% endif %}
+        </dd>
+        <dt>Type</dt>
+        <dd>{{packet.packet_type}}{% if packet.priority != "unset" %} (priority: {{packet.priority}}){% endif %}</dd>
+        {% match packet.payload %}
+            {% when Payload::TextMessage with (message) %}
+                <dt>Message</dt>
+                <dd>{{message}}</dd>
+            {% when Payload::Waypoint with (waypoint) %}
+                {% if waypoint.name != "" %}
+                <dt>Name</dt>
+                <dd>{{waypoint.name}}</dd>
+                {% endif %}
+                {% if waypoint.description != "" %}
+                <dt>Description</dt>
+                <dd>{{waypoint.description}}</dd>
+                {% endif %}
+                {% if waypoint.icon != "" %}
+                <dt>Icon</dt>
+                <dd>{{waypoint.icon}}</dd>
+                {% endif %}
+                <dt>Location</dt>
+                <dd>{{self::format_mesh_gps(waypoint.latitude, waypoint.longitude)}}</dd>
+            {% when Payload::Position with (position) %}
+                <dt>Location</dt>
+                <dd>{{self::format_mesh_gps(position.latitude, position.longitude)}}</dd>
+                {% if position.altitude != 0 %}
+                <dt>Altitude</dt>
+                <dd>{{position.altitude}} m</dd>
+                {% endif %}
+                {% if position.sats_in_view != 0 %}
+                <dt>Sats in view</dt>
+                <dd>{{position.sats_in_view}}</dd>
+                {% endif %}
+                {% if position.precision_bits != 0 %}
+                <dt>Precision bits</dt>
+                <dd>{{position.precision_bits}}</dd>
+                {% endif %}
+            {% when Payload::DeviceMetrics with (metrics) %}
+                {% if let Some(time) = metrics.time %}
+                <dt>Time</dt>
+                <dd>{{self::format_timestamp(time)}}</dd>
+                {% endif %}
+                <dt>Battery Level</dt>
+                <dd>{{metrics.battery_level}}%</dd>
+                <dt>Voltage</dt>
+                <dd>{{"{:.2} V"|format(metrics.voltage)}}</dd>
+                <dt>Channel util</dt>
+                <dd>{{"{:.2}%"|format(metrics.channel_utilization)}}</dd>
+                <dt>Air util tx</dt>
+                <dd>{{"{:.2}%"|format(metrics.air_util_tx)}}</dd>
+            {% when Payload::EnvironmentMetrics with (metrics) %}
+                {% if let Some(time) = metrics.time %}
+                <dt>Time</dt>
+                <dd>{{self::format_timestamp(time)}}</dd>
+                {% endif %}
+                {% if metrics.temperature != 0.0 %}
+                <dt>Temperature</dt>
+                    <dd>{{"{:.2} °C"|format(metrics.temperature)}}</dd>
+                {% endif %}
+                {% if metrics.relative_humidity != 0.0 %}
+                <dt>Humidity</dt>
+                <dd>{{"{:.2}%"|format(metrics.relative_humidity)}}</dd>
+                {% endif %}
+                {% if metrics.barometric_pressure != 0.0 %}
+                <dt>Pressure</dt>
+                <dd>{{"{:.1} hPa"|format(metrics.barometric_pressure)}}</dd>
+                {% endif %}
+                {% if metrics.gas_resistance != 0.0 %}
+                <dt>Gas resistance</dt>
+                <dd>{{"{:.2}"|format(metrics.gas_resistance)}}</dd>
+                {% endif %}
+            {% when Payload::Neighbors with (neighbors) %}
+                {% for neighbor in neighbors %}
+                    <dt>Neighbor</dt>
+                    <dd>
+                        <span class="node-name fetch" data-node-id="{{ neighbor.neighbor_node_id|hex }}">!{{ neighbor.neighbor_node_id|hex }}</span>
+                        <small>({{"SNR: {:.1}"|format(neighbor.snr)}})</small>
+                    </dd>
+                {% endfor %}
+            {% else %}
+        {% endmatch %}
+    </dl>
+</li>

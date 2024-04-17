@@ -1,0 +1,48 @@
+x-common-envs: &common-envs
+  MESHSTELLAR_DATABASE_URL: 'sqlite:///home/meshstellar/meshstellar.db?mode=rwc'
+  MESHSTELLAR_HTTP_ADDR: 0.0.0.0:3000
+  MESHSTELLAR_MAP_GLYPHS_URL: 'https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf'
+  MESHSTELLAR_MQTT_AUTH: 'true'
+  MESHSTELLAR_MQTT_CLIENT_ID: 'meshstellar'
+  MESHSTELLAR_MQTT_HOST: 'mqtt-host-here'
+  MESHSTELLAR_MQTT_KEEP_ALIVE: '15'
+  MESHSTELLAR_MQTT_PASSWORD: 'password'
+  MESHSTELLAR_MQTT_PORT: '1883'
+  MESHSTELLAR_MQTT_TOPIC: "meshtastic/#"
+  MESHSTELLAR_MQTT_USERNAME: 'username'
+  MESHSTELLAR_OPEN_BROWSER: 'false'
+services:
+  mqtt:
+    image: ghcr.io/jurriaan/meshstellar:latest
+    user: '65532:65532'
+    environment: *common-envs
+    restart: on-failure
+    volumes:
+      - meshstellar_data:/home/meshstellar:z
+    command:
+      - /usr/local/bin/meshstellar
+      - mqtt
+  web:
+    image: ghcr.io/jurriaan/meshstellar:latest
+    user: '65532:65532'
+    ports:
+      - '3000:3000'
+    environment: *common-envs
+    restart: on-failure
+    volumes:
+      - meshstellar_data:/home/meshstellar:z
+    command:
+      - /usr/local/bin/meshstellar
+      - web
+  import:
+    image: ghcr.io/jurriaan/meshstellar:latest
+    user: '65532:65532'
+    environment: *common-envs
+    restart: on-failure
+    volumes:
+      - meshstellar_data:/home/meshstellar:z
+    command:
+      - /usr/local/bin/meshstellar
+      - import
+volumes:
+  meshstellar_data:

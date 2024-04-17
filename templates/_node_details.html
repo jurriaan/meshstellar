@@ -1,0 +1,32 @@
+<button class="back" _="
+  on click
+    show #sidebar-main
+    hide #sidebar-details
+    call selectNode(null)
+">Back</button>
+<h1 style="font-weight: normal;">
+    {%- if let (Some(short_name), Some(long_name)) = (node.short_name|as_ref, node.long_name|as_ref) -%}
+        <strong>[{{ short_name }}]</strong> {{ long_name }}
+    {%- else -%}
+        <em>{{ node.user_id }}</em>
+    {%- endif -%}
+</h1>
+
+{%- if let (Some(last_rx_time), Some(last_rx_snr), Some(last_rx_rssi)) = (node.last_rx_time, node.last_rx_snr, node.last_rx_rssi) -%}
+<p>Last message received <time datetime="{{ self::format_timestamp(last_rx_time) }}" class="relative">{{ last_rx_time }}</time>
+            {%- if last_rx_snr != 0.0|as_ref && last_rx_rssi != 0|as_ref ~%}
+                <small>({{"SNR: {:.1}, RSSI: {}"|format(last_rx_snr, last_rx_rssi)}})</small>
+            {%- endif -%}
+</p>
+{%- endif -%}
+
+{%- if let Some(uptime_seconds) = node.uptime_seconds -%}
+    {%- if uptime_seconds != 0|as_ref ~%}
+        <p>Uptime: {{self::format_duration_sec(uptime_seconds)}}</p>
+    {%- endif -%}
+{%- endif -%}
+
+{% for plot in plots %}
+    <h2>{{plot.label}}</h2>
+    {{ plot.svg|safe }}
+{% endfor %}

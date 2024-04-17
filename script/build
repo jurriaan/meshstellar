@@ -1,0 +1,15 @@
+#!/bin/sh
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+[ -e build ] && rm -rf build
+mkdir build/release -p
+
+buildah version
+
+buildah build --dns=1.1.1.1 --layers --tag ghcr.io/jurriaan/meshstellar:builder -f Containerfile.crosscompile -v "$(pwd)/build:/app/build" --cache-from ghcr.io/jurriaan/meshstellar --cache-to ghcr.io/jurriaan/meshstellar .
+buildah build --dns=1.1.1.1 --layers --tag ghcr.io/jurriaan/meshstellar:latest -f Containerfile --cache-from ghcr.io/jurriaan/meshstellar --cache-to ghcr.io/jurriaan/meshstellar .
+
+buildah push ghcr.io/jurriaan/meshstellar:latest

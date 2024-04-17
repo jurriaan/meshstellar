@@ -1,0 +1,76 @@
+name: Build
+run-name: build
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  SCCACHE_GHA_ENABLED: "true"
+  RUSTC_WRAPPER: "sccache"
+  CARGO_INCREMENTAL: "0"
+  DATABASE_URL: "sqlite://docker-build.db?mode=rwc"
+  REGISTRY_USER: ${{ github.actor }}
+  REGISTRY_PASSWORD: ${{ github.token }}
+  IMAGE_REGISTRY: ghcr.io
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: musl-tools mingw-w64
+          version: 1.0
+      - run: sudo ln -s /usr/bin/x86_64-w64-mingw32-gcc-win32 /usr/bin/x86_64-w64-mingw32-gcc
+      - run: sudo ln -s /usr/bin/x86_64-w64-mingw32-g++-win32 /usr/bin/x86_64-w64-mingw32-g++
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+      - name: Check out repository code
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - run: cargo install sqlx-cli --no-default-features --features rustls,sqlite
+      - run: sqlx migrate run 
+      - run: cargo build --profile release-lto --target x86_64-unknown-linux-musl 
+      - run: cargo build --profile release-lto --target x86_64-pc-windows-gnu
+      - run: mkdir build && mv target/x86_64-unknown-linux-musl/release-lto/meshstellar build/meshstellar-linux-x86_64 && mv target/x86_64-pc-windows-gnu/release-lto/meshstellar.exe build/meshstellar-windows-x86_64.exe && mv meshstellar.toml.example build
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: |
+            build
+  build-container:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Check out Containerfile.github
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: 'Containerfile.github'
+      - uses: actions/download-artifact@v4
+        with:
+          name: build
+      - name: Display structure of downloaded files
+        run: ls -R
+      - run: wget http://nl.archive.ubuntu.com/ubuntu/pool/universe/g/golang-github-containers-buildah/buildah_1.28.2+ds1-1_amd64.deb; sudo dpkg --force-depends -i buildah_1.28.2+ds1-1_amd64.deb
+      - name: Log in to ghcr.io
+        uses: redhat-actions/podman-login@v1
+        with:
+          username: ${{ env.REGISTRY_USER }}
+          password: ${{ env.REGISTRY_PASSWORD }}
+          registry: ${{ env.IMAGE_REGISTRY }}
+      - run: buildah build --dns=1.1.1.1 --layers --tag ghcr.io/jurriaan/meshstellar:latest -f Containerfile.github .
+      - run: buildah tag ghcr.io/jurriaan/meshstellar:latest ghcr.io/jurriaan/meshstellar:${{ github.sha }}
+      - run: buildah push ghcr.io/jurriaan/meshstellar:${{ github.sha }}
+      - run: buildah push ghcr.io/jurriaan/meshstellar:latest
+
