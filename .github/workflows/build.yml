@@ -31,13 +31,15 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v4
         with:
-          submodules: 'true'
+          submodules: true
+          fetch-depth: 0
+          fetch-tags: true
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
       - run: cargo install sqlx-cli --no-default-features --features rustls,sqlite
-      - run: sqlx migrate run 
-      - run: cargo build --profile release-lto --target x86_64-unknown-linux-musl 
+      - run: sqlx migrate run
+      - run: cargo build --profile release-lto --target x86_64-unknown-linux-musl
       - run: cargo build --profile release-lto --target x86_64-pc-windows-gnu
       - run: mkdir build && mv target/x86_64-unknown-linux-musl/release-lto/meshstellar build/meshstellar-linux-x86_64 && mv target/x86_64-pc-windows-gnu/release-lto/meshstellar.exe build/meshstellar-windows-x86_64.exe && mv meshstellar.toml.example build
       - name: Archive artifacts
