@@ -36,5 +36,9 @@
         {%- if let Some(geom) = geom -%}
             <div data-geojson="{{geom}}"></div>
         {%- endif -%}
+
+        {%- if let Some(neighbor_json) = node.neighbor_json -%}
+            <div data-neighbor-json="{{neighbor_json}}"></div>
+        {%- endif -%}
     </div>
 </li>

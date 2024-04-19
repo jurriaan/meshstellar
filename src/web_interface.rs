@@ -69,8 +69,32 @@ fn node_update_stream(
             let nodes = sqlx::query_as!(
                 NodeSelectResult,
                 r#"
+                WITH neighbor_data AS (
+                    SELECT node_id, json_object('neighbor', printf('%x',neighbor_node_id), 'snr', snr, 'timestamp', timestamp/1000000000) AS neighbor
+                    FROM
+                        (
+                            SELECT
+                                node_id,
+                                neighbor_node_id,
+                                snr,
+                                timestamp,
+                                row_number() over (partition by node_id, neighbor_node_id
+                            ORDER BY
+                                timestamp DESC) AS row_number
+                            FROM
+                                neighbors
+                            WHERE
+                                timestamp > (strftime('%s', 'now') * 1000000000) - (8 * 60 * 60 * 1000000000)
+                        )
+                        a
+                    WHERE
+                        row_number = 1 ORDER BY timestamp DESC
+                ),
+                neighbors_per_node AS (
+                    SELECT node_id, json_group_array(json(neighbor)) AS neighbor_json FROM neighbor_data GROUP BY 1
+                )
                 SELECT
-                    node_id,
+                    nodes.node_id,
                     user_id,
                     last_rx_time,
                     last_rx_snr,
@@ -93,11 +117,13 @@ fn node_update_stream(
                     latitude,
                     longitude,
                     altitude,
+                    COALESCE(neighbor_json, '[]') AS neighbor_json,
                     last_node_info_id,
                     last_position_id,
                     last_device_metrics_id,
                     last_environment_metrics_id
                 FROM nodes
+                LEFT JOIN neighbors_per_node ON neighbors_per_node.node_id = nodes.node_id
                 WHERE last_rx_time > ?
                 ORDER BY last_rx_time ASC
                 "#,
@@ -125,6 +151,7 @@ fn node_update_stream(
                         _ => short_name
                     };
 
+                    properties.insert("id".to_string(), JsonValue::from(format!("{:x}", node.node_id)));
                     properties.insert("display_name".to_string(), JsonValue::from(display_name));
                     properties.insert("long_name".to_string(), JsonValue::from(node.long_name.clone()));
                     properties.insert("last_rx_time".to_string(), JsonValue::from(node.last_rx_time.unwrap_or_default() as f64 / 1_000_000_000.0));
@@ -411,151 +438,12 @@ impl FromIterator<NeighborLine> for FeatureCollection {
     }
 }
 
-async fn node_neighbors_geojson(
-    pool: State<SqlitePool>,
-    Path((node_id,)): Path<(String,)>,
-) -> axum::response::Result<impl IntoResponse> {
-    let node_id = i64::from_str_radix(&node_id, 16).map_err(stringify)? as i64;
-
-    let query_res: Vec<NeighborLine> = sqlx::query_as!(
-        NeighborLine,
-        r#"
-            WITH source_data AS
-            (
-            SELECT
-                node_id as node_a,
-                neighbor_node_id as node_b,
-                snr as min_snr
-            FROM
-                (
-                    SELECT
-                        node_id,
-                        neighbor_node_id,
-                        snr,
-                        timestamp,
-                        row_number() over (partition by node_id, neighbor_node_id
-                    ORDER BY
-                        timestamp DESC) AS row_number
-                    FROM
-                        neighbors
-                    WHERE
-                        timestamp > (strftime('%s', 'now') * 1000000000) - (8 * 60 * 60 * 1000000000)
-                        AND node_id = ?
-                )
-                a
-            WHERE
-                row_number = 1
-            )
-            SELECT
-                nodes_a.longitude AS "node_a_longitude!",
-                nodes_a.latitude AS "node_a_latitude!",
-                nodes_b.longitude AS "node_b_longitude!",
-                nodes_b.latitude AS "node_b_latitude!",
-                min_snr
-            FROM
-                source_data
-                LEFT JOIN
-                    nodes nodes_a
-                    ON nodes_a.node_id = node_a
-                LEFT JOIN
-                    nodes nodes_b
-                    ON nodes_b.node_id = node_b
-            WHERE
-                nodes_a.longitude IS NOT NULL
-                AND nodes_a.latitude IS NOT NULL
-                AND nodes_b.longitude IS NOT NULL
-                AND nodes_b.latitude IS NOT NULL
-            ORDER BY min_snr DESC
-            ;
-            "#,
-        node_id
-    )
-    .fetch_all(&*pool)
-    .await
-    .map_err(DatabaseError)?;
-
-    Ok((
-        [(header::CONTENT_TYPE, "application/geo+json")],
-        query_res
-            .into_iter()
-            .collect::<FeatureCollection>()
-            .to_string(),
-    ))
-}
-
-async fn neighbors_geojson(pool: State<SqlitePool>) -> axum::response::Result<impl IntoResponse> {
-    let query_res: Vec<NeighborLine> = sqlx::query_as!(
-        NeighborLine,
-        r#"
-            WITH source_data AS
-            (
-            SELECT
-                MIN(node_id, neighbor_node_id) as node_a,
-                MAX(node_id, neighbor_node_id) as node_b,
-                MIN(snr) as min_snr
-            FROM
-                (
-                    SELECT
-                        node_id,
-                        neighbor_node_id,
-                        snr,
-                        timestamp,
-                        row_number() over (partition by node_id, neighbor_node_id
-                    ORDER BY
-                        timestamp DESC) AS row_number
-                    FROM
-                        neighbors
-                    WHERE
-                        timestamp > (strftime('%s', 'now') * 1000000000) - (4 * 60 * 60 * 1000000000)
-                )
-                a
-            WHERE
-                row_number = 1
-            GROUP BY
-                node_a,
-                node_b
-            )
-            SELECT
-                nodes_a.longitude AS "node_a_longitude!",
-                nodes_a.latitude AS "node_a_latitude!",
-                nodes_b.longitude AS "node_b_longitude!",
-                nodes_b.latitude AS "node_b_latitude!",
-                min_snr
-            FROM
-                source_data
-                JOIN
-                    nodes nodes_a
-                    ON nodes_a.node_id = node_a
-                JOIN
-                    nodes nodes_b
-                    ON nodes_b.node_id = node_b
-            WHERE
-                nodes_a.longitude IS NOT NULL
-                AND nodes_a.latitude IS NOT NULL
-                AND nodes_b.longitude IS NOT NULL
-                AND nodes_b.latitude IS NOT NULL
-            ORDER BY min_snr DESC
-            ;
-            "#
-    )
-    .fetch_all(&*pool)
-    .await
-    .map_err(DatabaseError)?;
-
-    Ok((
-        [(header::CONTENT_TYPE, "application/geo+json")],
-        query_res
-            .into_iter()
-            .collect::<FeatureCollection>()
-            .to_string(),
-    ))
-}
-
 async fn node_details(
     pool: State<SqlitePool>,
     Path((node_id,)): Path<(String,)>,
 ) -> axum::response::Result<impl IntoResponse> {
     let node_id = i64::from_str_radix(&node_id, 16).map_err(stringify)? as i64;
+    // TODO: improve query to match neighbor node updates or setup new struct.
     let node = sqlx::query_as!(
         NodeSelectResult,
         r#"
@@ -583,6 +471,7 @@ async fn node_details(
             latitude,
             longitude,
             altitude,
+            '[]' AS neighbor_json,
             last_node_info_id,
             last_position_id,
             last_device_metrics_id,
@@ -671,7 +560,7 @@ async fn style_json(web_config: State<WebConfig>) -> impl IntoResponse {
             "type": "geojson",
             "buffer": 512,
             "maxzoom": 10,
-            "data": "/neighbors.geojson",
+            "data": { "type": "FeatureCollection", "features": [] },
         },
         "positions": {
             "type": "geojson",
@@ -717,7 +606,7 @@ async fn style_json(web_config: State<WebConfig>) -> impl IntoResponse {
                 "symbol-placement": "line-center",
                 "symbol-avoid-edges": true,
                 "symbol-z-order": "source",
-                "text-field": ["get", "min_snr"],
+                "text-field": ["get", "snr"],
                 "text-font": [
                     "Noto Sans Medium",
                 ],
@@ -804,14 +693,9 @@ pub async fn start_server(pool: SqlitePool, http_addr: String) -> anyhow::Result
     let app = Router::new()
         .route("/", get(index))
         .route("/events", get(sse_handler))
-        .route("/neighbors.geojson", get(neighbors_geojson))
         .route(
             "/node/:node_id/positions.geojson",
             get(node_positions_geojson),
-        )
-        .route(
-            "/node/:node_id/neighbors.geojson",
-            get(node_neighbors_geojson),
         )
         .route("/node/:node_id/details.html", get(node_details))
         .route("/map/style.json", get(style_json))

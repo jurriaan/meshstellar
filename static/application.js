@@ -42,23 +42,23 @@ function applyRelativeDateTime(node) {
 let selectedNode = null;
 let map = null;
 const nodeGeoJSON = { type: 'FeatureCollection', features: [] };
+const nodeFeaturesById = {};
+const neighborsGeoJSON = { type: 'FeatureCollection', features: [] };
 const emptyFeatureCollection = { type: 'FeatureCollection', features: [] };
 
 function selectNode(node) {
     const nodeEl = node ? htmx.find('#' + node?.id) : null;
     selectedNode?.classList?.remove('selected')
 
+
     map.getSource('positions').setData(emptyFeatureCollection);
-    map.getSource("neighbors").setData(emptyFeatureCollection);
 
     if (selectedNode == nodeEl || !node?.id) {
         selectedNode = null;
-        map.getSource("neighbors").setData("/neighbors.geojson");
     } else {
         selectedNode = nodeEl;
         nodeEl?.classList?.add('selected')
         map.getSource('positions').setData(`/node/${node.dataset.nodeId}/positions.geojson`);
-        map.getSource("neighbors").setData(`/node/${node.dataset.nodeId}/neighbors.geojson`);
     }
     updateNodeGeoJSON()
 }
@@ -111,16 +111,76 @@ function _updateNodeGeoJSON() {
     const nodeList = htmx.find('.node-list');
     const showOld = nodeList.classList.contains('show-old');
     const nodes = Array.from(htmx.findAll(nodeList, 'li'));
-    const index = nodes.findIndex((node) => node.classList.contains('selected'));
-    if (index > 0) nodes.unshift(nodes.splice(index, 1)[0]);
+    const selectedIndex = nodes.findIndex((node) => node.classList.contains('selected'));
+    if (selectedIndex > 0) nodes.unshift(nodes.splice(selectedIndex, 1)[0]);
 
-    const geoJSONs = nodes
-        .filter((node) => node.classList.contains('selected') || (showOld || !node.classList.contains('is-old')))
-        .map((node) => htmx.find(node, '[data-geojson]')?.dataset?.geojson).filter((geojson) => !!geojson);
+    const nodeData = nodes
+        .map((node) => {
+            let neighbors = htmx.find(node, '[data-neighbor-json]')?.dataset?.neighborJson;
+            if (neighbors) neighbors = JSON.parse(neighbors);
+            let geojson = htmx.find(node, '[data-geojson]')?.dataset?.geojson;
+            if (geojson) geojson = JSON.parse(geojson);
 
-    nodeGeoJSON.features = geoJSONs.map((json) => JSON.parse(json));
+            return {
+                id: node.dataset.nodeId,
+                neighbors: neighbors,
+                geojson: geojson,
+                selected: node.classList.contains('selected'),
+                isOld: node.classList.contains('is-old')
+            }
+        })
+        .filter((node) => node.selected || (showOld || !node.isOld));
+
+    nodeGeoJSON.features = nodeData.map((nodeData) => nodeData.geojson).filter((geojson) => geojson);
+    nodeGeoJSON.features.forEach((node) => {
+        nodeFeaturesById[node.properties.id] = node;
+    });
+
+    const neighbors = nodeData
+        .filter((node) => node.neighbors && node.neighbors.length > 0 && (selectedIndex == -1 || node.selected))
+        .flatMap((node) => {
+            return node.neighbors.map((neighbor) => {
+                const nodes = [node.id, neighbor.neighbor].sort()
+
+                return {
+                    a: nodes[0],
+                    b: nodes[1],
+                    snr: neighbor.snr,
+                    timestamp: neighbor.timestamp
+                };
+            });
+        })
+        .filter((neighbor) => nodeFeaturesById[neighbor.a] && nodeFeaturesById[neighbor.b])
+        .sort((neighborA, neighborB) => neighborB.timestamp - neighborA.timestamp);
+
+    const neighborSet = new Set();
+    const neighborFeatures = [];
+    neighbors.forEach((neighbor) => {
+        const key = neighbor.a + "-" + neighbor.b;
+
+        if (neighborSet.has(key)) return;
+        neighborSet.add(key);
+
+        neighborFeatures.push({
+            "type": "Feature",
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    nodeFeaturesById[neighbor.a].geometry.coordinates,
+                    nodeFeaturesById[neighbor.b].geometry.coordinates,
+                ]
+            },
+            "properties": {
+                "id": key,
+                "snr": neighbor.snr
+            }
+        });
+    });
+
+    neighborsGeoJSON.features = neighborFeatures;
 
     map?.getSource('nodes')?.setData(nodeGeoJSON);
+    map?.getSource('neighbors')?.setData(neighborsGeoJSON);
 }
 const updateNodeGeoJSON = debounce(_updateNodeGeoJSON, 500);
 
@@ -193,11 +253,6 @@ function loadMap() {
 
     map.once("load", async () => {
         map.addImage('node-symbol', (await image).data);
-
-        setInterval(() => {
-            // TODO: base neighbors on incoming messages instead;
-            map.getSource('neighbors').updateData();
-        }, 30000);
     });
 
     window.map = map;
