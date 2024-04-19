@@ -31,7 +31,7 @@ use futures::{
     stream::{select_all, Stream},
     FutureExt,
 };
-use geojson::{Feature, FeatureCollection, GeoJson, Geometry, JsonObject, JsonValue};
+use geojson::{Feature, GeoJson, Geometry, JsonObject, JsonValue};
 use itertools::Itertools;
 use serde_json::json;
 use sqlx::SqlitePool;
@@ -404,38 +404,6 @@ async fn node_positions_geojson(
     let res = GeoJson::Feature(query_res.into_iter().collect()).to_string();
 
     Ok(([(header::CONTENT_TYPE, "application/geo+json")], res))
-}
-
-#[derive(sqlx::FromRow)]
-struct NeighborLine {
-    node_a_longitude: f64,
-    node_a_latitude: f64,
-    node_b_longitude: f64,
-    node_b_latitude: f64,
-    min_snr: f64,
-}
-
-impl FromIterator<NeighborLine> for FeatureCollection {
-    fn from_iter<T: IntoIterator<Item = NeighborLine>>(iter: T) -> Self {
-        iter.into_iter()
-            .map(|line| {
-                let line_string = vec![
-                    vec![line.node_a_longitude, line.node_a_latitude],
-                    vec![line.node_b_longitude, line.node_b_latitude],
-                ];
-                let geometry: Geometry = geojson::Value::LineString(line_string).into();
-
-                let mut properties = JsonObject::new();
-                properties.insert("min_snr".to_string(), JsonValue::from(line.min_snr));
-
-                Feature {
-                    geometry: Some(geometry),
-                    properties: Some(properties),
-                    ..Default::default()
-                }
-            })
-            .collect()
-    }
 }
 
 async fn node_details(
