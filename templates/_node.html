@@ -21,7 +21,7 @@
 
         {%- if let (Some(temperature), Some(relative_humidity), Some(barometric_pressure)) = (node.temperature, node.relative_humidity, node.barometric_pressure) -%}
             <br />
-            {{- self::icon("thermometer")|safe ~}} 
+            {{- self::icon("thermometer")|safe ~}}
             {% if temperature != 0.0|as_ref %}
                 {{~ "{:.1}°C"|format(temperature) ~}}
             {% endif %}

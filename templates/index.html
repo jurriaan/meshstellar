@@ -4,7 +4,7 @@
 def updateNodes()
   tell <.node-name.fetch/> in <.tab-content-container />
     set selector to `#node-list-node-${you@data-node-id} .node-name`
-    get the first <${selector}/> in body then   
+    get the first <${selector}/> in body then
     if it exists set your innerHTML to its innerHTML
 end
 </script>
@@ -18,8 +18,8 @@ end
           <ol class="node-list" sse-swap="update-node" hx-swap="afterbegin" _="on htmx:afterSwap debounced at 100ms updateNodes()">
           </ol>
           <button class="list-action" _="
-            on click 
-            tell the previous .node-list 
+            on click
+            tell the previous .node-list
               toggle .show-old on you
               send refreshMap to body
               if you match .show-old

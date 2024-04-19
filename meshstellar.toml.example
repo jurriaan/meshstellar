@@ -10,4 +10,4 @@ database_url = "sqlite://meshstellar.db?mode=rwc"
 map_glyphs_url = "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf"
 open_browser = true
 # if hosting pmtiles:
-# meshstellar_pmtiles_url = "" 
+# meshstellar_pmtiles_url = ""

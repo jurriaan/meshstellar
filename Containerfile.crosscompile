@@ -17,9 +17,9 @@ RUN cargo chef cook --profile release-lto --target x86_64-unknown-linux-musl --r
 RUN cargo chef cook --profile release-lto --target x86_64-pc-windows-gnu --recipe-path recipe.json
 COPY migrations migrations
 ENV DATABASE_URL=sqlite://docker-build.db?mode=rwc
-RUN sqlx migrate run 
+RUN sqlx migrate run
 COPY . .
-RUN cargo build --profile release-lto --target x86_64-unknown-linux-musl 
+RUN cargo build --profile release-lto --target x86_64-unknown-linux-musl
 RUN cargo build --profile release-lto --target x86_64-pc-windows-gnu
 RUN mkdir -p /app/build/release/
 RUN cp /app/target/x86_64-unknown-linux-musl/release-lto/meshstellar /app/build/release/meshstellar-linux-x86_64
