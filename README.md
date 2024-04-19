@@ -27,9 +27,9 @@ It's a simple approach to log and keep track of what's happening in your network
 
 There are a few configuration file examples in this repository. 
 
-On Windows you can customize the meshstellar.toml.example (rename it to meshstellar.toml and put it in the same directory as the .exe file).
+On Windows you can configure it using the `meshstellar.toml` file (rename it from `meshstellar.toml.example` and put it in the same directory as the .exe file).
 
-On Linux / Docker it's probably easiest to configure it using environment variables (see .env.example for a list of variables you can configure). 
+On Linux / Docker it's probably easiest to configure it using environment variables (see `.env.example` for a list of environment variables you can configure). 
 
 ## How to run
 
