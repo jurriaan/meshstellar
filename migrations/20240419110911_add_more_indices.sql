@@ -1,0 +1,11 @@
+DROP INDEX idx_mesh_packets_from_id_to_id;
+CREATE INDEX idx_mesh_packets_from_id_rx_time ON mesh_packets(from_id, rx_time DESC);
+CREATE INDEX idx_environment_metrics_node_id ON environment_metrics(node_id);
+CREATE INDEX idx_device_metrics_node_id ON device_metrics(node_id);
+CREATE INDEX idx_nodes_last_rx_time ON nodes(last_rx_time);
+CREATE INDEX idx_neighbors ON neighbors(node_id, neighbor_node_id, timestamp DESC);
+CREATE INDEX idx_positions_mesh_packet_id ON positions(mesh_packet_id);
+CREATE INDEX idx_neighbors_mesh_packet_id ON neighbors(mesh_packet_id);
+CREATE INDEX idx_device_metrics_mesh_packet_id ON device_metrics(mesh_packet_id);
+CREATE INDEX idx_environment_metrics_mesh_packet_id ON environment_metrics(mesh_packet_id);
+CREATE INDEX idx_waypoints_mesh_packet_id ON waypoints(mesh_packet_id);
