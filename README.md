@@ -35,7 +35,7 @@ On Linux / Docker it's probably easiest to configure it using environment variab
 
 ### Windows
 
-Make sure the configuration is updated and a meshstellar.toml file sits in the same directory as the meshstellar exe file. Double click the .exe to start meshstellar.
+Make sure the configuration (the `meshtastic.toml` file) is updated and saved in the same directory as the meshstellar.exe file. Double click the .exe to start meshstellar.
 
 ### Use docker-compose
 
