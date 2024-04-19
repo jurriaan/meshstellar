@@ -220,7 +220,7 @@ function _refreshOnlineState() {
     }
 }
 
-const refreshOnlineState = debounce(_refreshOnlineState, 500);
+const refreshOnlineState = debounce(_refreshOnlineState, 250);
 
 function refreshMap() {
     updateNodeGeoJSON();
