@@ -60,7 +60,7 @@ function selectNode(node) {
         nodeEl?.classList?.add('selected')
         map.getSource('positions').setData(`/node/${node.dataset.nodeId}/positions.geojson`);
     }
-    updateNodeGeoJSON()
+    _updateNodeGeoJSON();
 }
 
 function debounce(fn, delay) {
