@@ -57,7 +57,7 @@ pub fn setup_tracing() {
         .init();
 }
 
-pub async fn connect_to_mqtt() -> anyhow::Result<EventLoop> {
+pub async fn connect_to_mqtt() -> anyhow::Result<(EventLoop, AsyncClient)> {
     let mqtt_host = config::get_config().get_string("mqtt_host")?;
     let mqtt_port = config::get_config().get_int("mqtt_port")?.try_into()?;
     let mqtt_keep_alive = config::get_config()
@@ -83,7 +83,7 @@ pub async fn connect_to_mqtt() -> anyhow::Result<EventLoop> {
 
     let result = timeout(mqtt_connect_timeout, wait_for_connection(eventloop)).await?;
     info!("MQTT subscribed to {}", mqtt_topic);
-    result
+    result.map(|eventloop| (eventloop, client))
 }
 
 async fn wait_for_connection(mut eventloop: EventLoop) -> anyhow::Result<EventLoop> {
