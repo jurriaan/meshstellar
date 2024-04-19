@@ -69,7 +69,7 @@ fn node_update_stream(
             let nodes = sqlx::query_as!(
                 NodeSelectResult,
                 r#"
-                SELECT 
+                SELECT
                     node_id,
                     user_id,
                     last_rx_time,
@@ -358,12 +358,12 @@ async fn node_positions_geojson(
     let query_res: Vec<NodePosition> = sqlx::query_as!(
         NodePosition,
         r#"
-            SELECT 
+            SELECT
                 positions.latitude,
                 positions.longitude,
                 positions.altitude
-            FROM positions 
-            JOIN mesh_packets ON positions.mesh_packet_id = mesh_packets.id 
+            FROM positions
+            JOIN mesh_packets ON positions.mesh_packet_id = mesh_packets.id
             WHERE node_id = ?
             ORDER BY rx_time DESC
             LIMIT 250
@@ -420,7 +420,7 @@ async fn node_neighbors_geojson(
     let query_res: Vec<NeighborLine> = sqlx::query_as!(
         NeighborLine,
         r#"
-            WITH source_data AS 
+            WITH source_data AS
             (
             SELECT
                 node_id as node_a,
@@ -433,35 +433,35 @@ async fn node_neighbors_geojson(
                         neighbor_node_id,
                         snr,
                         timestamp,
-                        row_number() over (partition by node_id, neighbor_node_id 
+                        row_number() over (partition by node_id, neighbor_node_id
                     ORDER BY
-                        timestamp DESC) AS row_number 
+                        timestamp DESC) AS row_number
                     FROM
-                        neighbors 
+                        neighbors
                     WHERE
                         timestamp > (strftime('%s', 'now') * 1000000000) - (8 * 60 * 60 * 1000000000)
                         AND node_id = ?
                 )
-                a 
+                a
             WHERE
-                row_number = 1 
+                row_number = 1
             )
             SELECT
                 nodes_a.longitude AS "node_a_longitude!",
                 nodes_a.latitude AS "node_a_latitude!",
                 nodes_b.longitude AS "node_b_longitude!",
                 nodes_b.latitude AS "node_b_latitude!",
-                min_snr 
+                min_snr
             FROM
-                source_data 
+                source_data
                 LEFT JOIN
-                    nodes nodes_a 
-                    ON nodes_a.node_id = node_a 
+                    nodes nodes_a
+                    ON nodes_a.node_id = node_a
                 LEFT JOIN
-                    nodes nodes_b 
-                    ON nodes_b.node_id = node_b 
+                    nodes nodes_b
+                    ON nodes_b.node_id = node_b
             WHERE
-                nodes_a.longitude IS NOT NULL 
+                nodes_a.longitude IS NOT NULL
                 AND nodes_a.latitude IS NOT NULL
                 AND nodes_b.longitude IS NOT NULL
                 AND nodes_b.latitude IS NOT NULL
@@ -487,12 +487,12 @@ async fn neighbors_geojson(pool: State<SqlitePool>) -> axum::response::Result<im
     let query_res: Vec<NeighborLine> = sqlx::query_as!(
         NeighborLine,
         r#"
-            WITH source_data AS 
+            WITH source_data AS
             (
             SELECT
                 MIN(node_id, neighbor_node_id) as node_a,
                 MAX(node_id, neighbor_node_id) as node_b,
-                MIN(snr) as min_snr 
+                MIN(snr) as min_snr
             FROM
                 (
                     SELECT
@@ -500,17 +500,17 @@ async fn neighbors_geojson(pool: State<SqlitePool>) -> axum::response::Result<im
                         neighbor_node_id,
                         snr,
                         timestamp,
-                        row_number() over (partition by node_id, neighbor_node_id 
+                        row_number() over (partition by node_id, neighbor_node_id
                     ORDER BY
-                        timestamp DESC) AS row_number 
+                        timestamp DESC) AS row_number
                     FROM
-                        neighbors 
+                        neighbors
                     WHERE
                         timestamp > (strftime('%s', 'now') * 1000000000) - (4 * 60 * 60 * 1000000000)
                 )
-                a 
+                a
             WHERE
-                row_number = 1 
+                row_number = 1
             GROUP BY
                 node_a,
                 node_b
@@ -520,17 +520,17 @@ async fn neighbors_geojson(pool: State<SqlitePool>) -> axum::response::Result<im
                 nodes_a.latitude AS "node_a_latitude!",
                 nodes_b.longitude AS "node_b_longitude!",
                 nodes_b.latitude AS "node_b_latitude!",
-                min_snr 
+                min_snr
             FROM
-                source_data 
+                source_data
                 JOIN
-                    nodes nodes_a 
-                    ON nodes_a.node_id = node_a 
+                    nodes nodes_a
+                    ON nodes_a.node_id = node_a
                 JOIN
-                    nodes nodes_b 
-                    ON nodes_b.node_id = node_b 
+                    nodes nodes_b
+                    ON nodes_b.node_id = node_b
             WHERE
-                nodes_a.longitude IS NOT NULL 
+                nodes_a.longitude IS NOT NULL
                 AND nodes_a.latitude IS NOT NULL
                 AND nodes_b.longitude IS NOT NULL
                 AND nodes_b.latitude IS NOT NULL
@@ -559,7 +559,7 @@ async fn node_details(
     let node = sqlx::query_as!(
         NodeSelectResult,
         r#"
-        SELECT 
+        SELECT
             node_id,
             user_id,
             last_rx_time,
@@ -632,8 +632,8 @@ async fn create_plots(
             UNION ALL SELECT * FROM (SELECT 'V' as plot_type, time as "time!", voltage AS "value!" FROM device_metrics WHERE node_id = ?1 AND time IS NOT NULL AND voltage > 0 ORDER BY "time!" DESC LIMIT 100)
             UNION ALL SELECT * FROM (SELECT 'T' as plot_type, time as "time!", temperature AS "value!" FROM environment_metrics WHERE node_id = ?1 AND time IS NOT NULL AND temperature > -100 ORDER BY "time!" DESC LIMIT 100)
             UNION ALL SELECT * FROM (SELECT 'H' as plot_type, time as "time!", relative_humidity AS "value!" FROM environment_metrics WHERE node_id = ?1 AND time IS NOT NULL AND relative_humidity > 0 ORDER BY "time!" DESC LIMIT 100)
-            UNION ALL SELECT * FROM (SELECT 'B' as plot_type, time as "time!", barometric_pressure AS "value!" FROM environment_metrics WHERE node_id = ?1 AND time IS NOT NULL AND barometric_pressure > 0 ORDER BY "time!" DESC LIMIT 100) 
-            ORDER BY plot_type, "time!" DESC; 
+            UNION ALL SELECT * FROM (SELECT 'B' as plot_type, time as "time!", barometric_pressure AS "value!" FROM environment_metrics WHERE node_id = ?1 AND time IS NOT NULL AND barometric_pressure > 0 ORDER BY "time!" DESC LIMIT 100)
+            ORDER BY plot_type, "time!" DESC;
         "#,
         node_id
     )
@@ -669,6 +669,8 @@ async fn style_json(web_config: State<WebConfig>) -> impl IntoResponse {
         },
         "neighbors": {
             "type": "geojson",
+            "buffer": 512,
+            "maxzoom": 10,
             "data": "/neighbors.geojson",
         },
         "positions": {
