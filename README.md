@@ -2,6 +2,8 @@
 
 Welcome to Meshstellar, an open-source tool designed for monitoring and analyzing your local Meshtastic network. Meshtastic is a powerful platform that uses long-range, low-power radio mesh networking, ideal for communication beyond the reach of traditional connectivity. Meshstellar aims to complement this by offering insights into network traffic and node health, helping you keep your network running smoothly.
 
+![Screenshot of the packets list of meshstellar](screenshot.png?raw=true)
+
 ## Features
 
 - Traffic Monitoring: Track the flow of packets within your network, including their origin, destination, and payload, to better understand network activity.
