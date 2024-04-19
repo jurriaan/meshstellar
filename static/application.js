@@ -193,6 +193,11 @@ function loadMap() {
 
     map.once("load", async () => {
         map.addImage('node-symbol', (await image).data);
+
+        setInterval(() => {
+            // TODO: base neighbors on incoming messages instead;
+            map.getSource('neighbors').updateData();
+        }, 30000);
     });
 
     window.map = map;
