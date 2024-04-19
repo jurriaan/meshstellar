@@ -92,20 +92,18 @@ function centerMap() {
 }
 
 let loadingIsFinished = false;
-function _loadingFinished() {
+function loadingFinished() {
     if (!loadingIsFinished) {
         loadingIsFinished = true;
 
-        htmx.find('#sidebar')?.removeAttribute("hidden");
+        setTimeout(() => {
+            htmx.find('#sidebar')?.removeAttribute("hidden");
 
-        window.requestAnimationFrame(() => {
-            _updateNodeGeoJSON();
             centerMap();
-        });
+        }, 500);
     }
 }
 
-const loadingFinished = debounce(_loadingFinished, 500);
 
 function _updateNodeGeoJSON() {
     const nodeList = htmx.find('.node-list');
@@ -181,6 +179,10 @@ function _updateNodeGeoJSON() {
 
     map?.getSource('nodes')?.setData(nodeGeoJSON);
     map?.getSource('neighbors')?.setData(neighborsGeoJSON);
+
+    if (!loadingIsFinished) {
+        loadingFinished();
+    }
 }
 const updateNodeGeoJSON = debounce(_updateNodeGeoJSON, 500);
 
@@ -231,10 +233,6 @@ function handleSseMessage(event) {
         updateNodeGeoJSON();
     } else if (eventType == 'mesh-packet') {
         refreshOnlineState();
-    }
-
-    if (!loadingIsFinished) {
-        loadingFinished();
     }
 }
 
