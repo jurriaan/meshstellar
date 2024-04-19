@@ -710,6 +710,27 @@ async fn style_json(web_config: State<WebConfig>) -> impl IntoResponse {
 
     let stellar_layers = vec![
         json!({
+            "id": "neighbor-snr",
+            "type": "symbol",
+            "source": "neighbors",
+            "layout": {
+                "symbol-placement": "line-center",
+                "symbol-avoid-edges": true,
+                "symbol-z-order": "source",
+                "text-field": ["get", "min_snr"],
+                "text-font": [
+                    "Noto Sans Medium",
+                ],
+                "text-rotation-alignment": "viewport",
+                "text-anchor": "center",
+                "text-padding": 5,
+                "text-size": 16,
+                "text-radial-offset": 0.5,
+                "text-justify": "auto",
+            },
+            "paint": {}
+        }),
+        json!({
                 "id": "node-symbols",
                 "type": "symbol",
                 "source": "nodes",
@@ -753,27 +774,6 @@ async fn style_json(web_config: State<WebConfig>) -> impl IntoResponse {
                 "paint": {
                     "line-color": "red",
                 }
-        }),
-        json!({
-            "id": "neighbor-snr",
-            "type": "symbol",
-            "source": "neighbors",
-            "layout": {
-                "symbol-placement": "line-center",
-                "symbol-avoid-edges": true,
-                "symbol-z-order": "source",
-                "text-field": ["get", "min_snr"],
-                "text-font": [
-                    "Noto Sans Medium",
-                ],
-                "text-rotation-alignment": "viewport",
-                "text-anchor": "center",
-                "text-padding": 5,
-                "text-size": 16,
-                "text-radial-offset": 0.5,
-                "text-justify": "auto",
-            },
-            "paint": {}
         }),
     ];
 
