@@ -1,7 +1,9 @@
 FROM docker.io/library/alpine as prepare
 RUN mkdir -p /home/meshstellar
+COPY meshstellar-linux-x86_64 /
+RUN chmod a+x meshstellar-linux-x86_64
 FROM gcr.io/distroless/static:nonroot AS runtime
 COPY --from=prepare --chown=65532:65532 /home/meshstellar /home/meshstellar
-COPY meshstellar-linux-x86_64 /usr/local/bin/meshstellar
+COPY --from=prepare /meshstellar-linux-x86_64 /usr/local/bin/meshstellar
 VOLUME /home/meshstellar
 CMD ["/usr/local/bin/meshstellar"]
