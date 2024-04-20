@@ -14,6 +14,8 @@ end
     <div id="sidebar-main">
       <div class="tab-content-container">
         <section id="nodes" class="tab-content">
+          <button class="about" _="on click showModal() on #about">About</button>
+
           <h1>Nodes</h1>
           <ol class="node-list" sse-swap="update-node" hx-swap="afterbegin" _="on htmx:afterSwap debounced at 100ms updateNodes()">
           </ol>
@@ -63,4 +65,16 @@ end
     ">
     </div>
   </aside>
+  <dialog id="about">
+    <button class="close" _="on click close() on #about">Close</button>
+    <h1>About</h1>
+    {{- self::logo()|safe ~}}
+    <p><strong>Meshstellar {{version}}</strong></p>
+
+    <p>For more information see <a href="https://github.com/jurriaan/meshstellar">meshstellar on GitHub</a></p>
+
+    <div id="statistics" sse-swap="statistics">
+    </div>
+  </dialog>
+
 {% endblock %}

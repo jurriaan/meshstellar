@@ -2,7 +2,7 @@ use crate::{
     dto::{
         mesh_packet::Payload, DeviceMetricsSelectResult, EnvironmentMetricsSelectResult,
         MeshPacket as MeshPacketDto, NeighborSelectResult, NodeSelectResult, PlotData,
-        PositionSelectResult, WaypointSelectResult,
+        PositionSelectResult, StatsSelectResult, WaypointSelectResult,
     },
     proto::meshtastic::PortNum,
     template::*,
@@ -56,7 +56,43 @@ struct AppState {
 }
 
 async fn index() -> impl IntoResponse {
-    IndexTemplate {}
+    let version = option_env!("VERGEN_GIT_DESCRIBE")
+        .unwrap_or("v0.0")
+        .to_string();
+
+    IndexTemplate { version }
+}
+
+fn stats_update_stream(
+    pool: State<SqlitePool>,
+) -> Pin<Box<dyn Stream<Item = Result<Event, Infallible>> + Send>> {
+    Box::pin(stream! {
+        loop {
+            let result = sqlx::query_as!(
+                StatsSelectResult,
+                r#"SELECT
+                    COALESCE((SELECT COUNT(id) FROM mesh_packets), 0) AS "num_packets!",
+                    COALESCE((SELECT COUNT(id) FROM nodes), 0) AS "num_nodes!"
+                "#
+            )
+            .fetch_one(&*pool)
+            .await;
+
+            if let Err(err) = result {
+                error!("Error occurred while fetching stats: {}", err);
+                break;
+            }
+            let template = StatsTemplate {
+                stats: result.unwrap_or_default(),
+            };
+
+                if let Ok(data) = template.render() {
+                    yield Ok(Event::default().event("statistics").data(data))
+                }
+
+            tokio::time::sleep(Duration::from_secs(15)).await;
+        }
+    })
 }
 
 fn node_update_stream(
@@ -345,8 +381,14 @@ fn mesh_packet_stream(
 async fn sse_handler(
     pool: State<SqlitePool>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
-    let update_stream =
-        select_all(vec![node_update_stream(pool.clone()), mesh_packet_stream(pool)].into_iter());
+    let update_stream = select_all(
+        vec![
+            node_update_stream(pool.clone()),
+            mesh_packet_stream(pool.clone()),
+            stats_update_stream(pool),
+        ]
+        .into_iter(),
+    );
 
     Sse::new(update_stream).keep_alive(
         axum::response::sse::KeepAlive::new()

@@ -2,6 +2,7 @@ use crate::dto::mesh_packet::MeshPacket as MeshPacketDto;
 use crate::dto::mesh_packet::Payload;
 use crate::dto::NodeSelectResult;
 use crate::dto::PlotData;
+use crate::dto::StatsSelectResult;
 use askama::Template;
 use chrono::prelude::*;
 use chrono::TimeDelta;
@@ -10,7 +11,15 @@ const SVG_ICONS_CONTENT: &str = include_str!(env!("SVG_ICONS_PATH"));
 
 #[derive(Template)]
 #[template(path = "index.html")]
-pub(crate) struct IndexTemplate {}
+pub(crate) struct IndexTemplate {
+    pub version: String,
+}
+
+#[derive(Template)]
+#[template(path = "_stats.html")]
+pub(crate) struct StatsTemplate {
+    pub stats: StatsSelectResult,
+}
 
 #[derive(Template)]
 #[template(path = "_node.html")]
@@ -30,6 +39,11 @@ pub(crate) struct PacketTemplate {
 pub(crate) struct NodeDetailsTemplate {
     pub node: NodeSelectResult,
     pub plots: Vec<PlotData>,
+}
+
+fn logo() -> String {
+    "<svg viewBox=\"0 0 512 256\" class=\"logo\"><use xlink:href=\"#icon-meshstellar\"></use></svg>"
+        .to_string()
 }
 
 fn icon(icon_name: &str) -> String {

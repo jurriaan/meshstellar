@@ -122,9 +122,11 @@ ol {
     pointer-events: auto;
 }
 
-.tab-content-container h1 {
+#sidebar h1 {
     margin: 0;
     padding: 1rem;
+    font-size: 1.2rem;
+    line-height: 1.2rem;
     text-align: center;
 }
 
@@ -228,8 +230,53 @@ button.list-action {
     background: (255, 255, 255, .7);
 }
 
+dialog {
+    min-width: 35vw;
+    max-width: 96vw;
+    border: none;
+    border-radius: 10px;
+}
+
+
+dialog button.close {
+    float: right;
+    padding: .6rem;
+}
+
+dialog h1 {
+    margin-top: 0;
+    font-size: 1.8rem;
+    white-space: nowrap;
+    margin-right: 5rem;
+}
+
+dialog::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+svg.logo {
+    max-width: 512px;
+    margin: 0 auto;
+    width: auto;
+    height: auto;
+    display: block;
+}
+
+button.about,
 button.back {
-    font-size: 1.3rem;
-    font-weight: bold;
+    position: absolute;
     cursor: pointer;
+    margin: .8rem 0;
+    height: 1.6rem;
+    font-size: 1rem;
+    line-height: 1.6rem;
+    background: white;
+    border-radius: 5px;
+    border: none;
+    box-shadow: 1px 1px black;
+    font-weight: 500;
+}
+
+button.about {
+    margin: .8rem 1rem;
 }

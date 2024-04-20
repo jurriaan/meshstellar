@@ -7,6 +7,7 @@ pub mod plot_data;
 pub mod position_select_result;
 pub mod returning_id;
 pub mod service_envelope_select_result;
+pub mod stats_select_result;
 pub mod waypoint_select_result;
 
 pub use device_metrics_select_result::DeviceMetricsSelectResult;
@@ -18,4 +19,5 @@ pub use plot_data::PlotData;
 pub use position_select_result::PositionSelectResult;
 pub use returning_id::ReturningId;
 pub use service_envelope_select_result::ServiceEnvelopeSelectResult;
+pub use stats_select_result::StatsSelectResult;
 pub use waypoint_select_result::WaypointSelectResult;
