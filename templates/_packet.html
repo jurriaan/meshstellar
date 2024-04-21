@@ -113,6 +113,15 @@
                 <dd>
                     <span class="node-name fetch" data-node-id="{{ traceroute.to_id|hex }}">!{{ traceroute.to_id|hex }}</span>
                 </dd>
+            {% when Payload::Routing with (routing) %}
+                {% if let Some(error_reason) = routing.error_reason %}
+                    <dt>Error reason</dt>
+                    <dd>{{error_reason}}</dd>
+                {% else %}
+                    <dd>
+                        {{ routing.variant_name }}
+                    </dd>
+                {% endif %}
             {% else %}
         {% endmatch %}
     </dl>

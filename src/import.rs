@@ -3,13 +3,14 @@ use crate::{
     proto::{
         self,
         meshtastic::{
-            mesh_packet::PayloadVariant::Decoded, telemetry, MeshPacket, NeighborInfo, PortNum,
-            Position, RouteDiscovery, ServiceEnvelope, Telemetry, User, Waypoint,
+            mesh_packet::PayloadVariant::Decoded, routing, telemetry, MeshPacket, NeighborInfo,
+            PortNum, Position, RouteDiscovery, Routing, ServiceEnvelope, Telemetry, User, Waypoint,
         },
     },
     util::{none_if_default, DB},
 };
 use anyhow::anyhow;
+
 use chrono::Utc;
 use prost::Message;
 use sqlx::pool::PoolConnection;
@@ -104,6 +105,9 @@ async fn process_mesh_packet(
                 }
                 Ok(PortNum::TracerouteApp) => {
                     handle_traceroute_payload(data, packet, mesh_packet_id, txn).await
+                }
+                Ok(PortNum::RoutingApp) => {
+                    handle_routing_payload(data, packet, mesh_packet_id, txn).await
                 }
                 Ok(num) => Err(anyhow!(MeshPacketProcessingError(format!(
                     "Unsupported portnum: {:?}",
@@ -253,42 +257,12 @@ async fn handle_neighbor_payload(
 ) -> Result<(), anyhow::Error> {
     let neighbor_info = NeighborInfo::decode(&*data.payload);
     Ok(if let Ok(neighbor_info) = neighbor_info {
-        let node_ids: Vec<u32> = neighbor_info.neighbors.iter().map(|n| n.node_id).collect();
+        let node_ids: HashSet<u32> = neighbor_info.neighbors.iter().map(|n| n.node_id).collect();
 
-        let existing_nodes: HashSet<u32> = if neighbor_info.neighbors.is_empty() {
-            HashSet::new()
-        } else {
-            let query = format!(
-                "SELECT node_id FROM nodes WHERE node_id IN ({})",
-                node_ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ")
-            );
-            let mut query = sqlx::query(&query);
-            for node_id in node_ids {
-                query = query.bind(node_id);
-            }
-            query
-                .fetch_all(&mut **txn)
-                .await?
-                .into_iter()
-                .map(|row| row.get::<i32, _>("node_id") as u32)
-                .collect()
-        };
+        create_nodes_if_not_exist(node_ids, txn).await?;
 
         for neighbor_node in neighbor_info.neighbors {
             if neighbor_node.node_id != 0 && neighbor_node.node_id != 0xFFFFFFFF {
-                if !existing_nodes.contains(&neighbor_node.node_id) {
-                    // Attempt to insert the node, ignoring conflicts
-                    let user_id = format!("!{:08x}", neighbor_node.node_id);
-                    let _ = sqlx::query!(
-                        "INSERT INTO nodes (node_id, user_id) VALUES (?, ?)
-                        ON CONFLICT(node_id) DO NOTHING",
-                        neighbor_node.node_id,
-                        user_id
-                    )
-                    .execute(&mut **txn)
-                    .await;
-                }
-
                 let rx_time = packet.rx_time as i64 * 1_000_000_000;
 
                 // Insert neighbor relationship
@@ -504,44 +478,76 @@ async fn handle_traceroute_payload(
 ) -> anyhow::Result<()> {
     Ok(
         if let Ok(route_discovery_payload) = RouteDiscovery::decode(&*data.payload) {
-            let mut node_ids = HashSet::from_iter(route_discovery_payload.route.into_iter());
-            node_ids.insert(packet.from);
+            let mut node_ids = HashSet::from_iter(route_discovery_payload.route);
             node_ids.insert(packet.to);
 
-            let query = format!(
-                "SELECT node_id FROM nodes WHERE node_id IN ({})",
-                node_ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ")
-            );
-            let mut query = sqlx::query(&query);
-
-            for node_id in &node_ids {
-                query = query.bind(node_id);
-            }
-
-            let existing_nodes: HashSet<u32> = query
-                .fetch_all(&mut **txn)
-                .await?
-                .into_iter()
-                .map(|row| row.get::<i32, _>("node_id") as u32)
-                .collect();
-
-            // Make sure that the nodes in the traceroute are added to the database
-            for node_id in node_ids.difference(&existing_nodes) {
-                if *node_id != 0 && *node_id != 0xFFFFFFFF {
-                    // Attempt to insert the node, ignoring conflicts
-                    let user_id = format!("!{:08x}", node_id);
-                    let _ = sqlx::query!(
-                        "INSERT INTO nodes (node_id, user_id) VALUES (?, ?) ON CONFLICT(node_id) DO NOTHING",
-                        node_id, user_id
-                    )
-                    .execute(&mut **txn)
-                    .await;
-                }
-            }
+            create_nodes_if_not_exist(node_ids, txn).await?;
 
             // Traceroutes are parsed on the fly currently, no database entry will be created.
         },
     )
+}
+
+async fn handle_routing_payload(
+    data: &proto::meshtastic::Data,
+    packet: &proto::meshtastic::MeshPacket,
+    _mesh_packet_id: i64,
+    txn: &mut PoolConnection<DB>,
+) -> anyhow::Result<()> {
+    Ok(
+        if let Ok(routing_payload) = Routing::decode(&*data.payload) {
+            let variant = routing_payload
+                .variant
+                .ok_or(anyhow!("Unknown routing variant"))?;
+
+            if let routing::Variant::RouteRequest(discovery)
+            | routing::Variant::RouteReply(discovery) = variant
+            {
+                let mut node_ids = HashSet::from_iter(discovery.route);
+                node_ids.insert(packet.to);
+
+                create_nodes_if_not_exist(node_ids, txn).await?;
+            }
+
+            // Routing messages are parsed on the fly currently, no database entry will be created.
+        },
+    )
+}
+
+async fn create_nodes_if_not_exist(
+    node_ids: HashSet<u32>,
+    txn: &mut PoolConnection<sqlx::Sqlite>,
+) -> Result<(), anyhow::Error> {
+    if node_ids.is_empty() {
+        return Ok(());
+    };
+
+    let query = format!(
+        "SELECT node_id FROM nodes WHERE node_id IN ({})",
+        node_ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ")
+    );
+    let mut query = sqlx::query(&query);
+    for node_id in &node_ids {
+        query = query.bind(node_id);
+    }
+    let existing_nodes: HashSet<u32> = query
+        .fetch_all(&mut **txn)
+        .await?
+        .into_iter()
+        .map(|row| row.get::<i32, _>("node_id") as u32)
+        .collect();
+    Ok(for node_id in node_ids.difference(&existing_nodes) {
+        if *node_id != 0 && *node_id != 0xFFFFFFFF {
+            // Attempt to insert the node, ignoring conflicts
+            let user_id = format!("!{:08x}", node_id);
+            let _ = sqlx::query!(
+                "INSERT INTO nodes (node_id, user_id) VALUES (?, ?) ON CONFLICT(node_id) DO NOTHING",
+                node_id, user_id
+            )
+            .execute(&mut **txn)
+            .await;
+        }
+    })
 }
 
 async fn create_packet(

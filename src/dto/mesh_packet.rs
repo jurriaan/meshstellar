@@ -3,7 +3,9 @@ use sqlx::FromRow;
 use sqlx::Row;
 
 use crate::proto::meshtastic::{mesh_packet::Priority, PortNum};
+use crate::util::capitalize;
 
+use super::RoutingDto;
 use super::{
     DeviceMetricsSelectResult, EnvironmentMetricsSelectResult, NeighborSelectResult,
     PositionSelectResult, TracerouteDto, WaypointSelectResult,
@@ -18,6 +20,7 @@ pub enum Payload {
     EnvironmentMetrics(EnvironmentMetricsSelectResult),
     Neighbors(Vec<NeighborSelectResult>),
     Traceroute(TracerouteDto),
+    Routing(RoutingDto),
     Unknown,
 }
 
@@ -45,15 +48,6 @@ pub struct MeshPacket {
     pub want_response: bool,
     pub payload: Payload,
     pub payload_data: Vec<u8>,
-}
-
-/// Capitalizes the first character in s.
-pub fn capitalize(s: &str) -> String {
-    let mut c = s.chars();
-    match c.next() {
-        None => String::new(),
-        Some(f) => f.to_uppercase().collect::<String>() + c.as_str().to_lowercase().as_str(),
-    }
 }
 
 impl FromRow<'_, SqliteRow> for MeshPacket {

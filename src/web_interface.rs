@@ -2,12 +2,12 @@ use crate::{
     dto::{
         mesh_packet::Payload, DeviceMetricsSelectResult, EnvironmentMetricsSelectResult,
         MeshPacket as MeshPacketDto, NeighborSelectResult, NodeSelectResult, PlotData,
-        PositionSelectResult, StatsSelectResult, TracerouteDto, WaypointSelectResult,
+        PositionSelectResult, RoutingDto, StatsSelectResult, TracerouteDto, WaypointSelectResult,
     },
-    proto::meshtastic::{PortNum, RouteDiscovery},
+    proto::meshtastic::{routing, PortNum, RouteDiscovery, Routing},
     template::*,
     util::{
-        self,
+        self, capitalize,
         config::get_config,
         demoji,
         static_file::{Asset, StaticFile},
@@ -398,6 +398,24 @@ fn mesh_packet_stream(
                                     route: route_discovery.route
                                 }
                             });
+                        }
+                    }
+                    Ok(PortNum::RoutingApp) => {
+                        if let Ok(Some(routing_variant)) = Routing::decode(&*packet.payload_data).map(|r| r.variant) {
+                            let (variant_name, error_reason) = match routing_variant {
+                                routing::Variant::RouteRequest(_) => ("Route request", None),
+                                routing::Variant::RouteReply(_) => ("Route reply", None),
+                                routing::Variant::ErrorReason(error) => {
+                                    let error = routing::Error::try_from(error as i32).map(|error| capitalize(error.as_str_name().replace("_"," ").as_str()))
+                                   .unwrap_or_else(|_| "Unknown".to_string());
+                                    ("Error reason", Some(error))
+                                },
+                            };
+
+                            packet.payload = Payload::Routing(RoutingDto {
+                                variant_name: variant_name.to_string(),
+                                error_reason
+                            })
                         }
                     }
                     _ => {}
