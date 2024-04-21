@@ -2,9 +2,9 @@ use crate::{
     dto::{
         mesh_packet::Payload, DeviceMetricsSelectResult, EnvironmentMetricsSelectResult,
         MeshPacket as MeshPacketDto, NeighborSelectResult, NodeSelectResult, PlotData,
-        PositionSelectResult, StatsSelectResult, WaypointSelectResult,
+        PositionSelectResult, StatsSelectResult, TracerouteDto, WaypointSelectResult,
     },
-    proto::meshtastic::PortNum,
+    proto::meshtastic::{PortNum, RouteDiscovery},
     template::*,
     util::{
         self,
@@ -33,6 +33,7 @@ use futures::{
 };
 use geojson::{Feature, GeoJson, Geometry, JsonObject, JsonValue};
 use itertools::Itertools;
+use prost::Message;
 use serde_json::json;
 use sqlx::SqlitePool;
 use std::{collections::HashMap, sync::OnceLock};
@@ -225,7 +226,21 @@ fn mesh_packet_stream(
         loop {
             let packets : Result<Vec<MeshPacketDto>, sqlx::Error> = sqlx::query_as(
                 r#"
-                SELECT *
+                SELECT
+                    id,
+                    from_id,
+                    to_id,
+                    gateway_id,
+                    portnum,
+                    rx_time,
+                    hop_start,
+                    hop_limit
+                    rx_snr,
+                    rx_rssi,
+                    priority,
+                    want_ack,
+                    want_response,
+                    payload_data
                 FROM mesh_packets
                 WHERE id IN (
                     SELECT id FROM mesh_packets
@@ -362,6 +377,27 @@ fn mesh_packet_stream(
                     Ok(PortNum::NeighborinfoApp) => {
                         if let Some(neighbors) = neighbors.get_or_init(compute_neighbors).await.get(&packet.id) {
                             packet.payload = Payload::Neighbors(neighbors.clone());
+                        }
+                    }
+                    Ok(PortNum::TracerouteApp) => {
+                        if let Ok(route_discovery) = RouteDiscovery::decode(&*packet.payload_data) {
+                            let is_response = !packet.want_response;
+
+                            packet.payload = Payload::Traceroute(if is_response {
+                                TracerouteDto {
+                                    from_id: packet.to_id,
+                                    to_id: packet.from_id,
+                                    is_response,
+                                    route: route_discovery.route
+                                }
+                            } else {
+                                TracerouteDto {
+                                    from_id: packet.from_id,
+                                    to_id: packet.to_id,
+                                    is_response,
+                                    route: route_discovery.route
+                                }
+                            });
                         }
                     }
                     _ => {}

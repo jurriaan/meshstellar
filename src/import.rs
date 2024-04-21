@@ -1,15 +1,17 @@
 use crate::{
     dto::{ReturningId, ServiceEnvelopeSelectResult},
-    proto,
+    proto::{
+        self,
+        meshtastic::{
+            mesh_packet::PayloadVariant::Decoded, telemetry, MeshPacket, NeighborInfo, PortNum,
+            Position, RouteDiscovery, ServiceEnvelope, Telemetry, User, Waypoint,
+        },
+    },
     util::{none_if_default, DB},
 };
 use anyhow::anyhow;
 use chrono::Utc;
 use prost::Message;
-use proto::meshtastic::{
-    mesh_packet::PayloadVariant::Decoded, telemetry, MeshPacket, NeighborInfo, PortNum, Position,
-    ServiceEnvelope, Telemetry, User, Waypoint,
-};
 use sqlx::pool::PoolConnection;
 use sqlx::{Row, SqliteConnection, SqlitePool};
 use std::{collections::HashSet, time::Duration};
@@ -72,7 +74,7 @@ async fn process_mesh_packet(
             let rx_time_nanos = packet.rx_time as i64 * 1_000_000_000;
 
             let _ = sqlx::query!(
-                "UPDATE nodes 
+                "UPDATE nodes
                  SET last_rx_time = ?, last_rx_snr = ?, last_rx_rssi = ?
                  WHERE node_id = ? AND (last_rx_time IS NULL OR last_rx_time < ?)",
                 rx_time_nanos,  // New last_rx_time value
@@ -99,6 +101,9 @@ async fn process_mesh_packet(
                 }
                 Ok(PortNum::WaypointApp) => {
                     handle_waypoint_payload(data, packet, mesh_packet_id, txn).await
+                }
+                Ok(PortNum::TracerouteApp) => {
+                    handle_traceroute_payload(data, packet, mesh_packet_id, txn).await
                 }
                 Ok(num) => Err(anyhow!(MeshPacketProcessingError(format!(
                     "Unsupported portnum: {:?}",
@@ -134,7 +139,7 @@ async fn fetch_mesh_repeat_and_node_exists(
     let result : PacketStatus = sqlx::query_as!(
         PacketStatus,
         r#"
-            SELECT 
+            SELECT
                 EXISTS(SELECT 1 FROM mesh_packets WHERE unique_id = ? AND unique_id != 0 AND payload_data = ? AND rx_time BETWEEN ? AND ?) AS "mesh_repeat!",
                 EXISTS(SELECT 1 FROM mesh_packets WHERE hash = ? AND unique_id != 0) AS "exact_match!",
                 EXISTS(SELECT 1 FROM nodes WHERE node_id = ?) AS "node_exists!"
@@ -320,7 +325,7 @@ async fn handle_telemetry_payload(
                         ReturningId,
                         "INSERT INTO device_metrics (mesh_packet_id, node_id, time, battery_level, voltage, air_util_tx, channel_utilization, uptime_seconds)
                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                         RETURNING id", 
+                         RETURNING id",
                         mesh_packet_id,
                         packet.from,
                         time,
@@ -337,8 +342,8 @@ async fn handle_telemetry_payload(
                     let _ = sqlx::query!(
                         "UPDATE nodes SET battery_level = ?, voltage = ?, air_util_tx = ?, channel_utilization = ?, uptime_seconds = ?, last_device_metrics_id = ?
                         WHERE node_id = ? AND (last_device_metrics_id IS NULL OR NOT EXISTS (
-                            SELECT 1 FROM mesh_packets 
-                            JOIN device_metrics ON device_metrics.mesh_packet_id = mesh_packets.id 
+                            SELECT 1 FROM mesh_packets
+                            JOIN device_metrics ON device_metrics.mesh_packet_id = mesh_packets.id
                             WHERE device_metrics.id = nodes.last_device_metrics_id AND mesh_packets.rx_time > ?))",
                         device_metrics_payload.battery_level,
                         device_metrics_payload.voltage,
@@ -357,7 +362,7 @@ async fn handle_telemetry_payload(
                         ReturningId,
                         "INSERT INTO environment_metrics (mesh_packet_id, node_id, time, temperature, relative_humidity, barometric_pressure, gas_resistance, iaq)
                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                         RETURNING id", 
+                         RETURNING id",
                         mesh_packet_id,
                         packet.from,
                         time,
@@ -374,8 +379,8 @@ async fn handle_telemetry_payload(
                     let _ = sqlx::query!(
                         "UPDATE nodes SET temperature = ?, relative_humidity = ?, barometric_pressure = ?, gas_resistance = ?, iaq = ?, last_environment_metrics_id = ?
                         WHERE node_id = ? AND (last_environment_metrics_id IS NULL OR NOT EXISTS (
-                            SELECT 1 FROM mesh_packets 
-                            JOIN environment_metrics ON environment_metrics.mesh_packet_id = mesh_packets.id 
+                            SELECT 1 FROM mesh_packets
+                            JOIN environment_metrics ON environment_metrics.mesh_packet_id = mesh_packets.id
                             WHERE environment_metrics.id = nodes.last_environment_metrics_id AND mesh_packets.rx_time > ?))",
                         environment_metrics_payload.temperature,
                         environment_metrics_payload.relative_humidity,
@@ -423,11 +428,11 @@ async fn handle_nodeinfo_payload(
 
             // Update nodes table
             let _ = sqlx::query!(
-                "UPDATE nodes 
+                "UPDATE nodes
                 SET user_id = ?, long_name = ?, short_name = ?, hw_model_id = ?, is_licensed = ?, role = ?, last_node_info_id = ?
                 WHERE node_id = ? AND (last_node_info_id IS NULL OR NOT EXISTS (
-                    SELECT 1 FROM mesh_packets 
-                    JOIN node_info ON node_info.mesh_packet_id = mesh_packets.id 
+                    SELECT 1 FROM mesh_packets
+                    JOIN node_info ON node_info.mesh_packet_id = mesh_packets.id
                     WHERE node_info.id = nodes.last_node_info_id AND mesh_packets.rx_time > ?))",
                 node_info_payload.id,
                 node_info_payload.long_name,
@@ -487,6 +492,54 @@ async fn handle_waypoint_payload(
             )
             .execute(&mut **txn)
             .await?;
+        },
+    )
+}
+
+async fn handle_traceroute_payload(
+    data: &proto::meshtastic::Data,
+    packet: &proto::meshtastic::MeshPacket,
+    _mesh_packet_id: i64,
+    txn: &mut PoolConnection<DB>,
+) -> anyhow::Result<()> {
+    Ok(
+        if let Ok(route_discovery_payload) = RouteDiscovery::decode(&*data.payload) {
+            let mut node_ids = HashSet::from_iter(route_discovery_payload.route.into_iter());
+            node_ids.insert(packet.from);
+            node_ids.insert(packet.to);
+
+            let query = format!(
+                "SELECT node_id FROM nodes WHERE node_id IN ({})",
+                node_ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ")
+            );
+            let mut query = sqlx::query(&query);
+
+            for node_id in &node_ids {
+                query = query.bind(node_id);
+            }
+
+            let existing_nodes: HashSet<u32> = query
+                .fetch_all(&mut **txn)
+                .await?
+                .into_iter()
+                .map(|row| row.get::<i32, _>("node_id") as u32)
+                .collect();
+
+            // Make sure that the nodes in the traceroute are added to the database
+            for node_id in node_ids.difference(&existing_nodes) {
+                if *node_id != 0 && *node_id != 0xFFFFFFFF {
+                    // Attempt to insert the node, ignoring conflicts
+                    let user_id = format!("!{:08x}", node_id);
+                    let _ = sqlx::query!(
+                        "INSERT INTO nodes (node_id, user_id) VALUES (?, ?) ON CONFLICT(node_id) DO NOTHING",
+                        node_id, user_id
+                    )
+                    .execute(&mut **txn)
+                    .await;
+                }
+            }
+
+            // Traceroutes are parsed on the fly currently, no database entry will be created.
         },
     )
 }

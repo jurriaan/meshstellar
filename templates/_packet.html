@@ -91,6 +91,28 @@
                         <small>({{"SNR: {:.1}"|format(neighbor.snr)}})</small>
                     </dd>
                 {% endfor %}
+            {% when Payload::Traceroute with (traceroute) %}
+                <dd>
+                    {% if traceroute.is_response %}
+                        Response
+                    {% else %}
+                        Request
+                    {% endif %}
+                </dd>
+                <dt>Start</dt>
+                <dd>
+                    <span class="node-name fetch" data-node-id="{{ traceroute.from_id|hex }}">!{{ traceroute.from_id|hex }}</span>
+                </dd>
+                {% for node_id in traceroute.route %}
+                    <dt>Hop</dt>
+                    <dd>
+                        <span class="node-name fetch" data-node-id="{{ node_id|hex }}">!{{ node_id|hex }}</span>
+                    </dd>
+                {% endfor%}
+                <dt>End</dt>
+                <dd>
+                    <span class="node-name fetch" data-node-id="{{ traceroute.to_id|hex }}">!{{ traceroute.to_id|hex }}</span>
+                </dd>
             {% else %}
         {% endmatch %}
     </dl>

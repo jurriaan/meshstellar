@@ -6,7 +6,7 @@ use crate::proto::meshtastic::{mesh_packet::Priority, PortNum};
 
 use super::{
     DeviceMetricsSelectResult, EnvironmentMetricsSelectResult, NeighborSelectResult,
-    PositionSelectResult, WaypointSelectResult,
+    PositionSelectResult, TracerouteDto, WaypointSelectResult,
 };
 
 #[derive(Clone)]
@@ -17,6 +17,7 @@ pub enum Payload {
     DeviceMetrics(DeviceMetricsSelectResult),
     EnvironmentMetrics(EnvironmentMetricsSelectResult),
     Neighbors(Vec<NeighborSelectResult>),
+    Traceroute(TracerouteDto),
     Unknown,
 }
 
@@ -41,6 +42,7 @@ pub struct MeshPacket {
     pub priority: String,
     pub priority_num: u8,
     pub want_ack: bool,
+    pub want_response: bool,
     pub payload: Payload,
     pub payload_data: Vec<u8>,
 }
@@ -68,6 +70,7 @@ impl FromRow<'_, SqliteRow> for MeshPacket {
         let rx_rssi = row.try_get::<i64, _>("rx_rssi").unwrap_or_default();
         let priority = row.try_get::<i64, _>("priority").unwrap_or_default();
         let want_ack = row.try_get::<i64, _>("want_ack").unwrap_or_default();
+        let want_response = row.try_get::<i64, _>("want_response").unwrap_or_default();
         let payload_data = row
             .try_get::<Vec<u8>, _>("payload_data")
             .unwrap_or_default();
@@ -107,6 +110,7 @@ impl FromRow<'_, SqliteRow> for MeshPacket {
             priority_num: priority as u8,
             priority: priority_string,
             want_ack: want_ack != 0,
+            want_response: want_response != 0,
             payload_data,
             payload: Payload::Unknown,
         })
