@@ -7,12 +7,16 @@
                 <em>{{ node.user_id }}</em>
             {%- endif -%}
         </span>
-        {%- if let (Some(last_rx_time), Some(last_rx_snr), Some(last_rx_rssi)) = (node.last_rx_time, node.last_rx_snr, node.last_rx_rssi) -%}
+        {%- if let (Some(last_rx_time), Some(last_rx_snr), Some(last_rx_rssi), Some(last_hop_start), Some(last_hop_limit)) = (node.last_rx_time, node.last_rx_snr, node.last_rx_rssi, node.last_hop_start, node.last_hop_limit) -%}
             <br />
             {{- self::icon("antenna")|safe ~}} <time datetime="{{ self::format_timestamp(last_rx_time) }}" class="relative">{{ last_rx_time }}</time>
 
             {%- if last_rx_snr != 0.0|as_ref && last_rx_rssi != 0|as_ref ~%}
-                <small>({{"SNR: {:.1}, RSSI: {}"|format(last_rx_snr, last_rx_rssi)}})</small>
+                {%- if last_hop_start > 0|as_ref %}
+                    <small>({{"SNR: {:.1}, RSSI: {}, hops: {}/{}"|format(last_rx_snr, last_rx_rssi, last_hop_start - last_hop_limit, last_hop_start)}})</small>
+                {%- else %}
+                    <small>({{"SNR: {:.1}, RSSI: {}"|format(last_rx_snr, last_rx_rssi)}})</small>
+                {%- endif -%}
             {%- endif -%}
         {%- endif -%}
         {%- if let (icon, info_string) = self::get_battery_info(node.voltage, node.battery_level) -%}

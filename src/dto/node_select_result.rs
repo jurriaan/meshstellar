@@ -7,6 +7,8 @@ pub struct NodeSelectResult {
     pub last_rx_time: Option<i64>,
     pub last_rx_snr: Option<f64>,
     pub last_rx_rssi: Option<i64>,
+    pub last_hop_start: Option<i64>,
+    pub last_hop_limit: Option<i64>,
     pub long_name: Option<String>,
     pub short_name: Option<String>,
     pub hw_model_id: Option<i64>,
