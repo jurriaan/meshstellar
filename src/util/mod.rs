@@ -81,9 +81,15 @@ pub async fn connect_to_mqtt() -> anyhow::Result<(EventLoop, AsyncClient)> {
 
     let mqtt_connect_timeout = tokio::time::Duration::from_millis(30000);
 
-    let result = timeout(mqtt_connect_timeout, wait_for_connection(eventloop)).await?;
-    info!("MQTT subscribed to {}", mqtt_topic);
-    result.map(|eventloop| (eventloop, client))
+    info!("MQTT ({}:{}) connecting..", mqtt_host, mqtt_port);
+
+    timeout(mqtt_connect_timeout, wait_for_connection(eventloop))
+        .await?
+        .map(|eventloop| {
+            info!("MQTT subscribed to {}", mqtt_topic);
+
+            (eventloop, client)
+        })
 }
 
 async fn wait_for_connection(mut eventloop: EventLoop) -> anyhow::Result<EventLoop> {
