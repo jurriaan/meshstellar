@@ -39,6 +39,7 @@ pub struct MeshPacket {
     pub portnum: i32,
     pub packet_type: String,
     pub rx_time: i64,
+    pub hop_start: Option<u8>,
     pub num_hops: Option<u8>,
     pub rx_snr: f64,
     pub rx_rssi: i64,
@@ -69,10 +70,10 @@ impl FromRow<'_, SqliteRow> for MeshPacket {
             .try_get::<Vec<u8>, _>("payload_data")
             .unwrap_or_default();
 
-        let num_hops = if hop_start >= hop_limit && hop_start != 0 {
-            Some((hop_start - hop_limit) as u8)
+        let (hop_start, num_hops) = if hop_start >= hop_limit && hop_start != 0 {
+            (Some(hop_start as u8), Some((hop_start - hop_limit) as u8))
         } else {
-            None
+            (None, None)
         };
 
         let priority_string = Priority::try_from(priority as i32)
@@ -98,6 +99,7 @@ impl FromRow<'_, SqliteRow> for MeshPacket {
             portnum: portnum as i32,
             packet_type,
             rx_time,
+            hop_start,
             num_hops,
             rx_snr,
             rx_rssi,

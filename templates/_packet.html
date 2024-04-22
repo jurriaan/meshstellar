@@ -6,6 +6,10 @@
         <dt>To</dt>
         <dd><span class="node-name fetch" data-node-id="{{ packet.to_id|hex }}">!{{ packet.to_id|hex }}</span></dd>
         {% endif %}
+        {% if let (Some(num_hops), Some(hop_start)) = (packet.num_hops, packet.hop_start) %}
+        <dt>Hops</dt>
+        <dd>{{num_hops}} / {{hop_start}}</dd>
+        {% endif %}
         <dt>Sent</dt>
         <dd>
         {{- self::icon("antenna")|safe ~}} <time datetime="{{ self::format_timestamp(packet.rx_time) }}" class="relative">{{ packet.rx_time }}</time>
