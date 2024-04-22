@@ -234,7 +234,7 @@ fn mesh_packet_stream(
                     portnum,
                     rx_time,
                     hop_start,
-                    hop_limit
+                    hop_limit,
                     rx_snr,
                     rx_rssi,
                     priority,
