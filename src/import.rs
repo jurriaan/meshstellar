@@ -404,6 +404,8 @@ async fn handle_nodeinfo_payload(
             .fetch_one(&mut **txn)
             .await?;
 
+            let rx_time_nanos = packet.rx_time as i64 * 1_000_000_000;
+
             // Update nodes table
             let _ = sqlx::query!(
                 "UPDATE nodes
@@ -420,7 +422,7 @@ async fn handle_nodeinfo_payload(
                 node_info_payload.role,
                 result.id,
                 packet.from,
-                packet.rx_time,
+                rx_time_nanos,
             )
             .execute(&mut **txn)
             .await?;
