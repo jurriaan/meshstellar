@@ -101,9 +101,10 @@ function loadingFinished() {
 
             centerMap();
         }, 500);
+
+        requestAnimationFrame(animate);
     }
 }
-
 
 function _updateNodeGeoJSON() {
     const nodeList = htmx.find('.node-list');
@@ -186,6 +187,32 @@ function _updateNodeGeoJSON() {
 }
 const updateNodeGeoJSON = debounce(_updateNodeGeoJSON, 500);
 
+const recentNodes = new Set();
+const lastRxPerNode = {};
+
+function animate() {
+    const curDate = (Date.now() / 1000).toFixed(0);
+
+    for (const [nodeId, lastRxTime] of Object.entries(lastRxPerNode)) {
+        const age = curDate - lastRxTime;
+        const recentTx = age > 0 && age < 30;
+
+        if (recentTx || recentNodes.has(nodeId)) {
+            if (!recentTx) {
+                recentNodes.delete(nodeId);
+
+                map.setFeatureState({ source: 'nodes', layers: ['node-symbols'], id: nodeId }, { 'age': null });
+            } else {
+                recentNodes.add(nodeId);
+
+                map.setFeatureState({ source: 'nodes', layers: ['node-symbols'], id: nodeId }, { 'age': age });
+            }
+        }
+    }
+
+    requestAnimationFrame(animate);
+}
+
 function _refreshOnlineState() {
     const sidebar = htmx.find('#sidebar');
     applyRelativeDateTime(sidebar);
@@ -194,13 +221,15 @@ function _refreshOnlineState() {
     const curDate = (Date.now() / 1000).toFixed(0);
 
     for (const node of nodes) {
-
         const timeNode = htmx.find(node, 'time.relative[datetime]');
         const nodeTime = timeNode?.dataset?.time;
         if (nodeTime) {
-            const isOnline = Math.abs(curDate - nodeTime) < 15 * 60;
+            const nodeId = node.dataset.nodeId;
+            lastRxPerNode[nodeId] = nodeTime;
+            const age = Math.abs(curDate - nodeTime);
+            const isOnline = age < 15 * 60;
             node.dataset.isOnline = isOnline;
-            const isOld = Math.abs(curDate - nodeTime) > 86400 * 1.5;
+            const isOld = age > 86400 * 1.5;
             node.dataset.isOld = isOld;
 
             if (isOnline) {
@@ -250,7 +279,7 @@ function loadMap() {
     let image = map.loadImage('/static/node-symbol.png');
 
     map.once("load", async () => {
-        map.addImage('node-symbol', (await image).data);
+        map.addImage('node-symbol', (await image).data, { sdf: true });
     });
 
     window.map = map;

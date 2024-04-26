@@ -623,6 +623,7 @@ async fn style_json(web_config: State<WebConfig>) -> impl IntoResponse {
         "nodes": {
             "type": "geojson",
             "data": { "type": "FeatureCollection", "features": [] },
+            "promoteId": "id",
         },
         "neighbors": {
             "type": "geojson",
@@ -698,7 +699,7 @@ async fn style_json(web_config: State<WebConfig>) -> impl IntoResponse {
                         "Noto Sans Medium",
                     ],
                     "icon-image": "node-symbol",
-                    "icon-size": 0.15,
+                    "icon-size": 0.3,
                     "icon-overlap": "never",
                     "icon-optional": true,
                     "text-overlap": "cooperative",
@@ -708,9 +709,26 @@ async fn style_json(web_config: State<WebConfig>) -> impl IntoResponse {
                     "text-justify": "auto",
                 },
                 "paint": {
-                    "text-color": "#202",
                     "text-halo-color": "#fff",
-                    "text-halo-width": 2
+                    "text-halo-width": 2,
+                    "icon-color": [
+                        "interpolate",
+                        ["exponential", 2],
+                        ["feature-state", "age"],
+                        2,
+                        "#C00",
+                        10,
+                        "#000"
+                    ],
+                    "text-color": [
+                        "interpolate",
+                        ["exponential", 2],
+                        ["feature-state", "age"],
+                        2,
+                        "#C00",
+                        10,
+                        "#202"
+                    ],
                 }
         }),
         json!({
