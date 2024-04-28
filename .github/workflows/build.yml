@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - update-runner-image
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -18,16 +19,14 @@ env:
   IMAGE_REGISTRY: ghcr.io
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          packages: musl-tools mingw-w64
-          version: 1.0
+          packages: musl-tools mingw-w64 protobuf-compiler
+          version: 1.1
       - run: sudo ln -s /usr/bin/x86_64-w64-mingw32-gcc-win32 /usr/bin/x86_64-w64-mingw32-gcc
       - run: sudo ln -s /usr/bin/x86_64-w64-mingw32-g++-win32 /usr/bin/x86_64-w64-mingw32-g++
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v3
       - name: Check out repository code
         uses: actions/checkout@v4
         with:
@@ -50,7 +49,7 @@ jobs:
             build
   build-container:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       packages: write
       contents: read
@@ -64,7 +63,6 @@ jobs:
           name: build
       - name: Display structure of downloaded files
         run: ls -R
-      - run: wget http://nl.archive.ubuntu.com/ubuntu/pool/universe/g/golang-github-containers-buildah/buildah_1.28.2+ds1-1_amd64.deb; sudo dpkg --force-depends -i buildah_1.28.2+ds1-1_amd64.deb
       - name: Log in to ghcr.io
         uses: redhat-actions/podman-login@v1
         with:
