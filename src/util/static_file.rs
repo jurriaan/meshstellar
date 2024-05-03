@@ -1,5 +1,5 @@
-use askama_axum::IntoResponse;
 use axum::http::{header, StatusCode};
+use axum::response::IntoResponse;
 use axum::response::Response;
 use rust_embed::RustEmbed;
 

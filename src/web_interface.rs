@@ -1,3 +1,4 @@
+use crate::util::template::into_response;
 use crate::{
     dto::{
         mesh_packet::Payload, DeviceMetricsSelectResult, EnvironmentMetricsSelectResult,
@@ -61,7 +62,7 @@ async fn index() -> impl IntoResponse {
         .unwrap_or("v0.0")
         .to_string();
 
-    IndexTemplate { version }
+    into_response(&IndexTemplate { version })
 }
 
 fn stats_update_stream(
@@ -554,10 +555,10 @@ async fn node_details(
     .await
     .map_err(DatabaseError)?;
 
-    Ok(NodeDetailsTemplate {
+    Ok(into_response(&NodeDetailsTemplate {
         node,
         plots: create_plots(pool, node_id).await.unwrap_or_default(),
-    })
+    }))
 }
 
 fn plot_labels() -> &'static Vec<(&'static str, &'static str)> {

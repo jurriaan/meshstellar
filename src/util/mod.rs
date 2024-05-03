@@ -13,6 +13,7 @@ pub mod config;
 pub mod database_error;
 pub mod plot;
 pub mod static_file;
+pub mod template;
 pub mod windows;
 
 pub use database_error::DatabaseError;

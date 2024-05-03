@@ -16,8 +16,7 @@ rust-embed = { version = "8.3", features = ["interpolate-folder-path"] }
 mime_guess = "2.0.4"
 tracing = { version = "0.1.40", features = ["release_max_level_info"] }
 tracing-subscriber = "0.3.18"
-askama = { version = "0.12.1", features = ["with-axum"], default-features = false }
-askama_axum = "0.4.0"
+askama = { version = "0.12.1", default-features = false }
 tower-http = { version = "0.5.2", features = ["trace", "compression-gzip"] }
 tokio-stream = "0.1.15"
 async-stream = "0.3.5"
