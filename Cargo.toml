@@ -6,12 +6,10 @@ license = "MIT"
 
 [dependencies]
 prost = "0.12"
-prost-types = "0.12"
 chrono = { version = "0.4.37", features = ["clock"], default-features = false }
 anyhow = "1"
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "time", "process"] }
 axum = { version = "0.7", features = ["macros", "tracing", "tokio", "http1", "tower-log"], default-features = false }
-serde = { version = "1.0.197", features = ["derive"] }
 rust-embed = { version = "8.3", features = ["interpolate-folder-path"] }
 mime_guess = "2.0.4"
 tracing = { version = "0.1.40", features = ["release_max_level_info"] }
