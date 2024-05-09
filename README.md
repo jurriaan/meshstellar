@@ -23,6 +23,10 @@ Its frontend tries to use as little JavaScript as possible, and uses HTMX and _h
 Meshstellar listens for data from Meshtastic devices sent over MQTT, like messages or node stats. This data, packed in Protocol Buffers, is then decoded and stored in a SQLite database (which by design stays as close to the source data as possible). 
 It's a simple approach to log and keep track of what's happening in your network.
 
+# Prerequisites
+
+To run Meshstellar you need a Linux or Windows system and a MQTT broker to connect to. The Meshtastic node you want to monitor needs to be configured to uplink the mesh packets to this broker.
+
 ## Configuration
 
 There are a few configuration file examples in this repository. 
@@ -62,3 +66,9 @@ meshstellar web
 ## Contributing
 
 Your contributions and feedback are welcome!
+
+## License
+
+See [LICENSE](LICENSE).
+
+Meshtastic® is a registered trademark of Meshtastic LLC. Meshtastic software components are released under various licenses, see GitHub for details. No warranty is provided - use at your own risk.
