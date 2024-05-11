@@ -273,7 +273,7 @@ fn mesh_packet_stream(
             let compute_waypoints = || {
                 async {
                 let query = format!(
-                    r#"SELECT mesh_packet_id, node_id, waypoint_id, latitude, longitude, expire, locked_to, name, description, icon FROM waypoints WHERE mesh_packet_id IN ({})"#,
+                    r#"SELECT mesh_packet_id, latitude, longitude, expire, locked_to, name, description, icon FROM waypoints WHERE mesh_packet_id IN ({})"#,
                     packet_ids_string
                 );
                 sqlx::query_as::<_, WaypointSelectResult>(&query)

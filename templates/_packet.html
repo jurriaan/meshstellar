@@ -42,6 +42,14 @@
                 {% endif %}
                 <dt>Location</dt>
                 <dd>{{self::format_mesh_gps(waypoint.latitude, waypoint.longitude)}}</dd>
+                {% if let Some(expire) = waypoint.expire %}
+                <dt>Expire</dt>
+                <dd>{{self::format_timestamp(expire)}}</dd>
+                {% endif %}
+                {% if let Some(locked_to) = waypoint.locked_to %}
+                <dt>Locked to</dt>
+                <dd><span class="node-name fetch" data-node-id="{{ locked_to|hex }}">!{{ locked_to|hex }}</span></dd>
+                {% endif %}
             {% when Payload::Position with (position) %}
                 <dt>Location</dt>
                 <dd>{{self::format_mesh_gps(position.latitude, position.longitude)}}</dd>
