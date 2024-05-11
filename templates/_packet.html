@@ -21,6 +21,10 @@
                 <small>({{"SNR: {:.1}, RSSI: {}"|format(packet.rx_snr, packet.rx_rssi)}})</small>
             {% endif %}
         </dd>
+        {% if packet.want_ack || packet.want_response %}
+        <dt>Flags</dt>
+        <dd>{% if packet.want_ack %}want ack{% endif %} {% if packet.want_response %}want response{% endif %}</dd>
+        {% endif %}
         <dt>Type</dt>
         <dd>{{packet.packet_type}}{% if packet.priority != "unset" %} (priority: {{packet.priority}}){% endif %}</dd>
         {% match packet.payload %}
