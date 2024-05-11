@@ -11,7 +11,7 @@ use super::{
     PositionSelectResult, TracerouteDto, WaypointSelectResult,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub enum Payload {
     TextMessage(String),
     Waypoint(WaypointSelectResult),
@@ -21,13 +21,8 @@ pub enum Payload {
     Neighbors(Vec<NeighborSelectResult>),
     Traceroute(TracerouteDto),
     Routing(RoutingDto),
+    #[default]
     Unknown,
-}
-
-impl Default for Payload {
-    fn default() -> Self {
-        Payload::Unknown
-    }
 }
 
 #[derive(Clone)]
@@ -90,7 +85,7 @@ impl FromRow<'_, SqliteRow> for MeshPacket {
                 capitalize(
                     p.as_str_name()
                         .replace("_APP", "")
-                        .replace("_", " ")
+                        .replace('_', " ")
                         .as_str(),
                 )
             })

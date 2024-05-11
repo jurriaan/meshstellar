@@ -29,9 +29,9 @@ async fn main() -> anyhow::Result<()> {
         );
     }
 
-    let ref args: Vec<String> = env::args().collect();
+    let args: &Vec<String> = &env::args().collect();
 
-    let choice = args.get(1).map(|a| a.clone()).unwrap_or("all".into());
+    let choice = args.get(1).cloned().unwrap_or("all".into());
 
     let http_addr = get_config().get_string("http_addr")?;
     let pool = connect_to_db().await?;

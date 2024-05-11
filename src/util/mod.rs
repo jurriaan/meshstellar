@@ -45,7 +45,7 @@ pub async fn connect_to_db() -> anyhow::Result<SqlitePool> {
     let sqlx_pool: Pool<DB> = sqlx_options.connect(&database_url).await?;
     MIGRATOR.run(&sqlx_pool).await?;
 
-    return Ok(sqlx_pool);
+    Ok(sqlx_pool)
 }
 
 pub fn setup_tracing() {

@@ -420,7 +420,7 @@ fn mesh_packet_stream(
                                 routing::Variant::RouteRequest(_) => ("Route request", None),
                                 routing::Variant::RouteReply(_) => ("Route reply", None),
                                 routing::Variant::ErrorReason(error) => {
-                                    let error = routing::Error::try_from(error as i32).map(|error| capitalize(error.as_str_name().replace("_"," ").as_str()))
+                                    let error = routing::Error::try_from(error).map(|error| capitalize(error.as_str_name().replace('_'," ").as_str()))
                                    .unwrap_or_else(|_| "Unknown".to_string());
                                     ("Error reason", Some(error))
                                 },
@@ -475,7 +475,7 @@ impl FromIterator<NodePosition> for Feature {
     fn from_iter<T: IntoIterator<Item = NodePosition>>(iter: T) -> Self {
         let line_string = iter
             .into_iter()
-            .map(|pos| vec![pos.longitude, pos.latitude, pos.altitude as f64].into())
+            .map(|pos| vec![pos.longitude, pos.latitude, pos.altitude as f64])
             .collect_vec();
 
         let geometry: Geometry = geojson::Value::LineString(line_string).into();
@@ -656,7 +656,7 @@ async fn style_json(web_config: State<WebConfig>) -> impl IntoResponse {
             .expect("Cannot find layer style")
             .data;
 
-        serde_json::from_slice(&*layers).expect("Cannot parse layer style")
+        serde_json::from_slice(&layers).expect("Cannot parse layer style")
     } else {
         sources["osm"] = json!({
             "type": "raster",

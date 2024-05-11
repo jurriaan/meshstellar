@@ -59,7 +59,7 @@ fn compress_static_files() -> Result<()> {
                     .split_last()
                     .unwrap()
                     .1
-                    .into_iter()
+                    .iter()
                     .fold(PathBuf::new(), |buf, comp| buf.join(comp));
                 if !directory.exists() {
                     fs::create_dir_all(directory)?;
