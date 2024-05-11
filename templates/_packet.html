@@ -109,6 +109,10 @@
                 <dt>Gas resistance</dt>
                 <dd>{{"{:.2}"|format(metrics.gas_resistance)}}</dd>
                 {% endif %}
+                {% if metrics.iaq != 0 %}
+                <dt>IAQ</dt>
+                <dd>{{ metrics.iaq }}</dd>
+                {% endif %}
             {% when Payload::Neighbors with (neighbors) %}
                 {% for neighbor in neighbors %}
                     <dt>Neighbor</dt>
