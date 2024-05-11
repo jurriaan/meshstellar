@@ -70,6 +70,12 @@
                 <dd>{{"{:.2}%"|format(metrics.channel_utilization)}}</dd>
                 <dt>Air util tx</dt>
                 <dd>{{"{:.2}%"|format(metrics.air_util_tx)}}</dd>
+                {%- if metrics.uptime_seconds > 0 ~%}
+                <dt>Uptime</dt>
+                <dd>
+                    {{self::format_duration_sec(metrics.uptime_seconds)}}
+                </dd>
+                {%- endif -%}
             {% when Payload::EnvironmentMetrics with (metrics) %}
                 {% if let Some(time) = metrics.time %}
                 <dt>Time</dt>
