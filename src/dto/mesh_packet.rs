@@ -35,7 +35,7 @@ pub struct MeshPacket {
     pub id: i64,
     pub from_id: u32,
     pub to_id: u32,
-    pub gateway_id: String,
+    pub gateway_id: Option<u32>,
     pub portnum: i32,
     pub packet_type: String,
     pub rx_time: i64,
@@ -49,6 +49,12 @@ pub struct MeshPacket {
     pub want_response: bool,
     pub payload: Payload,
     pub payload_data: Vec<u8>,
+}
+
+fn parse_hexadecimal_id(input: &str) -> Option<u32> {
+    input
+        .strip_prefix('!')
+        .and_then(|hex| u32::from_str_radix(hex, 16).ok())
 }
 
 impl FromRow<'_, SqliteRow> for MeshPacket {
@@ -95,7 +101,7 @@ impl FromRow<'_, SqliteRow> for MeshPacket {
             id,
             from_id: from_id as u32,
             to_id: to_id as u32,
-            gateway_id: gateway_id,
+            gateway_id: parse_hexadecimal_id(gateway_id.as_str()),
             portnum: portnum as i32,
             packet_type,
             rx_time,

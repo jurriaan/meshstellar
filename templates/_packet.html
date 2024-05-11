@@ -1,5 +1,9 @@
 <li id="packet-{{packet.id}}">
     <dl>
+        {% if let Some(gateway_id) = packet.gateway_id %}
+        <dt>Gateway</dt>
+        <dd><span class="node-name fetch" data-node-id="{{ gateway_id|hex }}">!{{ gateway_id|hex }}</span></dd>
+        {% endif %}
         <dt>From</dt>
         <dd><span class="node-name fetch" data-node-id="{{ packet.from_id|hex }}">!{{ packet.from_id|hex }}</span></dd>
         {% if packet.to_id > 0 && packet.to_id < 0xffffffff %}
