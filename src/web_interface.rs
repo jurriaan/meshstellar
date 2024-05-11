@@ -157,11 +157,7 @@ fn node_update_stream(
                     latitude,
                     longitude,
                     altitude,
-                    COALESCE(neighbor_json, '[]') AS neighbor_json,
-                    last_node_info_id,
-                    last_position_id,
-                    last_device_metrics_id,
-                    last_environment_metrics_id
+                    COALESCE(neighbor_json, '[]') AS neighbor_json
                 FROM nodes
                 LEFT JOIN neighbors_per_node ON neighbors_per_node.node_id = nodes.node_id
                 WHERE last_rx_time > ?
@@ -276,7 +272,10 @@ fn mesh_packet_stream(
 
             let compute_waypoints = || {
                 async {
-                let query = format!("SELECT * FROM waypoints WHERE mesh_packet_id IN ({})", packet_ids_string);
+                let query = format!(
+                    r#"SELECT mesh_packet_id, node_id, waypoint_id, latitude, longitude, expire, locked_to, name, description, icon FROM waypoints WHERE mesh_packet_id IN ({})"#,
+                    packet_ids_string
+                );
                 sqlx::query_as::<_, WaypointSelectResult>(&query)
                 .fetch_all(&*pool)
                 .map(|waypoints|
@@ -290,7 +289,10 @@ fn mesh_packet_stream(
             };
             let compute_positions = || {
                 async {
-                let query = format!("SELECT * FROM positions WHERE mesh_packet_id IN ({})", packet_ids_string);
+                let query = format!(
+                    r#"SELECT mesh_packet_id, latitude, longitude, altitude, sats_in_view, precision_bits FROM positions WHERE mesh_packet_id IN ({})"#,
+                     packet_ids_string
+                );
                 sqlx::query_as::<_, PositionSelectResult>(&query)
                 .fetch_all(&*pool)
                  .map(|positions|
@@ -304,7 +306,10 @@ fn mesh_packet_stream(
             };
             let compute_device_metrics = || {
                 async {
-                let query = format!("SELECT * FROM device_metrics WHERE mesh_packet_id IN ({})", packet_ids_string);
+                let query = format!(
+                    r#"SELECT mesh_packet_id, time, battery_level, voltage, channel_utilization, air_util_tx, uptime_seconds FROM device_metrics WHERE mesh_packet_id IN ({})"#,
+                    packet_ids_string
+                );
                 sqlx::query_as::<_, DeviceMetricsSelectResult>(&query)
                 .fetch_all(&*pool)
                  .map(|metrics|
@@ -318,7 +323,10 @@ fn mesh_packet_stream(
             };
             let compute_environment_metrics = || {
                 async {
-                let query = format!("SELECT * FROM enviroment_metrics WHERE mesh_packet_id IN ({})", packet_ids_string);
+                let query = format!(
+                    r#"SELECT mesh_packet_id, time, temperature, relative_humidity, barometric_pressure, gas_resistance, iaq FROM enviroment_metrics WHERE mesh_packet_id IN ({})"#,
+                     packet_ids_string
+                );
                 sqlx::query_as::<_, EnvironmentMetricsSelectResult>(&query)
                 .fetch_all(&*pool)
                  .map(|metrics|
@@ -332,7 +340,10 @@ fn mesh_packet_stream(
             };
             let compute_neighbors = || {
                 async {
-                    let query = format!("SELECT * FROM neighbors WHERE mesh_packet_id IN ({}) ORDER BY mesh_packet_id, id", packet_ids_string);
+                    let query = format!(
+                        "SELECT mesh_packet_id, neighbor_node_id, snr FROM neighbors WHERE mesh_packet_id IN ({}) ORDER BY mesh_packet_id, id",
+                        packet_ids_string
+                    );
                     sqlx::query_as::<_, NeighborSelectResult>(&query)
                     .fetch_all(&*pool)
                     .map(|neighbors|
@@ -540,11 +551,7 @@ async fn node_details(
             latitude,
             longitude,
             altitude,
-            '[]' AS neighbor_json,
-            last_node_info_id,
-            last_position_id,
-            last_device_metrics_id,
-            last_environment_metrics_id
+            '[]' AS neighbor_json
         FROM nodes
         WHERE node_id = ?
         ORDER BY last_rx_time ASC

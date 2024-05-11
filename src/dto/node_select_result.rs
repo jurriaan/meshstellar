@@ -28,8 +28,4 @@ pub struct NodeSelectResult {
     pub longitude: Option<f64>,
     pub altitude: Option<i64>,
     pub neighbor_json: Option<String>,
-    pub last_node_info_id: Option<i64>,
-    pub last_position_id: Option<i64>,
-    pub last_device_metrics_id: Option<i64>,
-    pub last_environment_metrics_id: Option<i64>,
 }
