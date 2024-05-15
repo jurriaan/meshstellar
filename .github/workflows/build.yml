@@ -25,8 +25,8 @@ jobs:
         with:
           packages: musl-tools mingw-w64 protobuf-compiler
           version: 1.1
-      - run: sudo ln -s /usr/bin/x86_64-w64-mingw32-gcc-win32 /usr/bin/x86_64-w64-mingw32-gcc
-      - run: sudo ln -s /usr/bin/x86_64-w64-mingw32-g++-win32 /usr/bin/x86_64-w64-mingw32-g++
+      - run: sudo ln -sfv /usr/bin/x86_64-w64-mingw32-gcc-win32 /usr/bin/x86_64-w64-mingw32-gcc
+      - run: sudo ln -sfv /usr/bin/x86_64-w64-mingw32-g++-win32 /usr/bin/x86_64-w64-mingw32-g++
       - name: Check out repository code
         uses: actions/checkout@v4
         with:
