@@ -16,8 +16,10 @@
 </head>
 
 <body hx-ext="custom,morph,sse" sse-connect="/events">
-    {{ self::SVG_ICONS_CONTENT|safe }}
-    {% block body %}{% endblock %}
+    <main>
+        {{ self::SVG_ICONS_CONTENT|safe }}
+        {% block body %}{% endblock %}
+    </main>
 </body>
 
 </html>
