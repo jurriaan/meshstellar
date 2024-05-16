@@ -50,13 +50,23 @@ function selectNode(node) {
     const nodeEl = node ? htmx.find('#' + node?.id) : null;
     selectedNode?.classList?.remove('selected')
 
-
     map.getSource('positions').setData(emptyFeatureCollection);
 
     if (selectedNode == nodeEl || !node?.id) {
         selectedNode = null;
     } else {
         selectedNode = nodeEl;
+        let geojson = htmx.find(nodeEl, '[data-geojson]')?.dataset?.geojson;
+        if (geojson) {
+            geojson = JSON.parse(geojson);
+
+            if(geojson.geometry && geojson.geometry.coordinates.length > 0) {
+                map.flyTo({
+                    center: geojson.geometry.coordinates,
+                    zoom: 12
+                });
+            }
+        }
         nodeEl?.classList?.add('selected')
         map.getSource('positions').setData(`/node/${node.dataset.nodeId}/positions.geojson`);
     }
