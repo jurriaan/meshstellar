@@ -45,6 +45,8 @@ body {
 
 #sidebar.collapsed>#resizer {
     display: block;
+    padding-right: 2.5rem;
+    right: -2.5rem;
 }
 
 #sidebar.collapsed>#resizer div {
