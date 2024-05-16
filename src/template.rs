@@ -3,6 +3,8 @@ use crate::dto::mesh_packet::Payload;
 use crate::dto::NodeSelectResult;
 use crate::dto::PlotData;
 use crate::dto::StatsSelectResult;
+use crate::proto::meshtastic::config::device_config::Role;
+use crate::util::capitalize;
 use askama::Template;
 use chrono::prelude::*;
 use chrono::TimeDelta;
@@ -52,6 +54,18 @@ fn icon(icon_name: &str) -> String {
         icon_name,
         icon_name
     )
+}
+
+fn role_name(role: &i64) -> String {
+    Role::try_from(*role as i32)
+            .map(|role| {
+                capitalize(
+                    role.as_str_name()
+                        .replace('_', " ")
+                        .as_str()
+                )
+            })
+            .unwrap_or_else(|_| "Unknown role".to_string())
 }
 
 fn format_mesh_gps(latitude: &f64, longitude: &f64) -> String {

@@ -36,6 +36,9 @@
                 {{~ "{:.1}hPa"|format(barometric_pressure) ~}}
             {% endif %}
         {%- endif -%}
+        {%- if let Some(role) = node.role -%}
+        <br>{{- self::icon("space-station")|safe ~}} {{ self::role_name(role) }}
+        {%- endif -%}
 
         {%- if let Some(geom) = geom -%}
             <div data-geojson="{{geom}}"></div>
