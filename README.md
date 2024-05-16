@@ -27,6 +27,10 @@ It's a simple approach to log and keep track of what's happening in your network
 
 To run Meshstellar you need a Linux or Windows system and a MQTT broker to connect to. The Meshtastic node you want to monitor needs to be configured to uplink the mesh packets to this broker.
 
+### Node configuration
+
+Make sure the node is configured to send data to the MQTT broker and 'Encryption Enabled' is turned off so Meshstellar can parse the unencrypted packets.
+
 ## Configuration
 
 There are a few configuration file examples in this repository. 
