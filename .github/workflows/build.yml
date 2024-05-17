@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - update-runner-image
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
