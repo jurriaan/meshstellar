@@ -58,7 +58,7 @@ async fn process_mesh_packet(
     packet: &MeshPacket,
 ) -> anyhow::Result<()> {
     if let Some(Decoded(ref data)) = packet.payload_variant {
-        let (mesh_repeat, node_exists) =
+        let (mesh_repeat_id, node_exists) =
             fetch_mesh_repeat_and_node_exists(packet, txn, data, raw_message_hash).await?;
 
         if !node_exists {
@@ -67,7 +67,15 @@ async fn process_mesh_packet(
 
         let mesh_packet_id = create_packet(gateway_id, packet, data, raw_message_hash, txn).await?;
 
-        if mesh_repeat {
+        if mesh_repeat_id != 0 {
+            let _ = sqlx::query!(
+                "UPDATE mesh_packets SET duplicate_of_mesh_packet_id = ? WHERE id = ?",
+                mesh_repeat_id,
+                mesh_packet_id,
+            )
+            .execute(&mut **txn)
+            .await?;
+
             Err(anyhow!(MeshPacketProcessingError(format!(
                 "Skipping processing of duplicate packet {}",
                 mesh_packet_id
@@ -129,7 +137,7 @@ async fn process_mesh_packet(
 
 #[derive(Clone, Debug)]
 struct PacketStatus {
-    mesh_repeat: i64,
+    mesh_repeat_id: i64,
     exact_match: i64,
     node_exists: i64,
 }
@@ -139,7 +147,7 @@ async fn fetch_mesh_repeat_and_node_exists(
     txn: &mut SqliteConnection,
     data: &proto::meshtastic::Data,
     raw_message_hash: &[u8],
-) -> anyhow::Result<(bool, bool)> {
+) -> anyhow::Result<(i64, bool)> {
     let range_start = (packet.rx_time as i64 - 3600) * 1_000_000_000;
     let range_end = (packet.rx_time as i64 + 3600) * 1_000_000_000;
 
@@ -147,7 +155,7 @@ async fn fetch_mesh_repeat_and_node_exists(
         PacketStatus,
         r#"
             SELECT
-                EXISTS(SELECT 1 FROM mesh_packets WHERE unique_id = ? AND unique_id != 0 AND payload_data = ? AND rx_time BETWEEN ? AND ?) AS "mesh_repeat!",
+                COALESCE((SELECT id FROM mesh_packets WHERE unique_id = ? AND unique_id != 0 AND payload_data = ? AND rx_time BETWEEN ? AND ? ORDER BY rx_time ASC LIMIT 1), 0) AS "mesh_repeat_id!",
                 EXISTS(SELECT 1 FROM mesh_packets WHERE hash = ? AND unique_id != 0) AS "exact_match!",
                 EXISTS(SELECT 1 FROM nodes WHERE node_id = ?) AS "node_exists!"
         "#,
@@ -161,12 +169,11 @@ async fn fetch_mesh_repeat_and_node_exists(
     .fetch_one(txn)
     .await?;
 
-    let mesh_repeat = result.mesh_repeat != 0;
     let exact_match = result.exact_match != 0;
     let node_exists = result.node_exists != 0;
 
     if !exact_match {
-        Ok((mesh_repeat, node_exists))
+        Ok((result.mesh_repeat_id, node_exists))
     } else {
         Err(anyhow!("Duplicate mesh packet: {}", packet.id))
     }
