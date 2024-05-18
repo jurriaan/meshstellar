@@ -37,7 +37,14 @@ There are a few configuration file examples in this repository.
 
 On Windows you can configure it using the `meshstellar.toml` file (rename it from `meshstellar.toml.example` and put it in the same directory as the .exe file).
 
-On Linux / Docker it's probably easiest to configure it using environment variables (see `.env.example` for a list of environment variables you can configure). 
+On Linux / Docker it's easiest to configure it using environment variables (see `.env.example` for a list of environment variables you can configure). However it is also possible to use the file-based configuration. 
+
+The following locations are checked for the file-based configuration:
+
+1. meshstellar.toml in the current working directory
+2. $XDG_CONFIG_HOME/meshstellar/meshstellar.toml or %APPDATA%/meshstellar/meshstellar.toml on Windows
+3. $HOME/.meshstellar.toml
+4. /etc/meshstellar/meshstellar.toml
 
 ## How to run
 
