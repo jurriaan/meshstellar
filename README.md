@@ -41,10 +41,10 @@ On Linux / Docker it's easiest to configure it using environment variables (see 
 
 The following locations are checked for the file-based configuration:
 
-1. meshstellar.toml in the current working directory
-2. $XDG_CONFIG_HOME/meshstellar/meshstellar.toml or %APPDATA%/meshstellar/meshstellar.toml on Windows
-3. $HOME/.meshstellar.toml
-4. /etc/meshstellar/meshstellar.toml
+1. `meshstellar.toml` in the current working directory
+2. `$XDG_CONFIG_HOME/meshstellar/meshstellar.toml` or `%APPDATA%/meshstellar/meshstellar.toml` on Windows
+3. `$HOME/.meshstellar.toml`
+4. `/etc/meshstellar/meshstellar.toml`
 
 ## How to run
 
