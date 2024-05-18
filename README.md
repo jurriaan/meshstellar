@@ -54,7 +54,30 @@ Make sure the configuration (the `meshtastic.toml` file) is updated and saved in
 
 ### Use docker-compose
 
-See `docker-compose.yml.example` for an example deployment.
+See `docker-compose.yml.example` for an example deployment. This is a more robust deployment running separate containers for the MQTT connection, packet parsing and web interface.
+
+### Use docker
+
+It's also possible to use docker directly to try out Meshstellar. This setup uses a single docker container to run Meshstellar.
+See `.env.example` for all environment variables that can be set.
+
+```shell
+docker volume create meshstellar_data
+docker run \
+  --name meshstellar \
+  --user 65532:65532 \
+  --restart on-failure \
+  -p 3000:3000 \
+  -e MESHSTELLAR_HTTP_ADDR='0.0.0.0:3000' \
+  -e MESHSTELLAR_DATABASE_URL="sqlite:///home/meshstellar/meshstellar.db?mode=rwc" \
+  -e MESHSTELLAR_MQTT_HOST="mqtt-host-here" \
+  -e MESHSTELLAR_MQTT_AUTH="true" \
+  -e MESHSTELLAR_MQTT_USERNAME="username" \
+  -e MESHSTELLAR_MQTT_PASSWORD="username" \
+  -e MESHSTELLAR_MQTT_TOPIC="msh/#" \
+  -v meshstellar_data:/home/meshstellar:z \
+  ghcr.io/jurriaan/meshstellar:latest
+```
 
 ### Manually on command line
 
