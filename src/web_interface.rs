@@ -3,7 +3,8 @@ use crate::{
     dto::{
         mesh_packet::Payload, DeviceMetricsSelectResult, EnvironmentMetricsSelectResult,
         MeshPacket as MeshPacketDto, NeighborSelectResult, NodeSelectResult, PlotData,
-        PositionSelectResult, RoutingDto, StatsSelectResult, TracerouteDto, WaypointSelectResult,
+        PositionSelectResult, PowerMetricsSelectResult, RoutingDto, StatsSelectResult,
+        TracerouteDto, WaypointSelectResult,
     },
     proto::meshtastic::{routing, PortNum, RouteDiscovery, Routing},
     template::*,
@@ -338,6 +339,23 @@ fn mesh_packet_stream(
                  ).await
                 }
             };
+            let compute_power_metrics = || {
+                async {
+                let query = format!(
+                    r#"SELECT mesh_packet_id, time, ch1_voltage, ch1_current, ch2_voltage, ch2_current, ch3_voltage, ch3_current FROM power_metrics WHERE mesh_packet_id IN ({})"#,
+                     packet_ids_string
+                );
+                sqlx::query_as::<_, PowerMetricsSelectResult>(&query)
+                .fetch_all(&*pool)
+                 .map(|metrics|
+                    if let Ok(metrics) = metrics {
+                        metrics.into_iter().map(|p| (p.mesh_packet_id, p)).collect()
+                    } else {
+                        Default::default()
+                    }
+                 ).await
+                }
+            };
             let compute_neighbors = || {
                 async {
                     let query = format!(
@@ -356,10 +374,12 @@ fn mesh_packet_stream(
                 }
             };
 
+            // This is a hack, let's improve..
             let waypoints : OnceCell<HashMap<i64, WaypointSelectResult>> = OnceCell::new();
             let positions : OnceCell<HashMap<i64, PositionSelectResult>> = OnceCell::new();
             let device_metrics : OnceCell<HashMap<i64, DeviceMetricsSelectResult>> = OnceCell::new();
             let environment_metrics: OnceCell<HashMap<i64, EnvironmentMetricsSelectResult>> = OnceCell::new();
+            let power_metrics: OnceCell<HashMap<i64, PowerMetricsSelectResult>> = OnceCell::new();
             let neighbors: OnceCell<HashMap<i64, Vec<NeighborSelectResult>>> = OnceCell::new();
 
             last_rx_time = packets.first().map(|p| p.rx_time).unwrap_or(last_rx_time);
@@ -386,6 +406,8 @@ fn mesh_packet_stream(
                             packet.payload = Payload::DeviceMetrics(device_metrics.clone())
                         } else if let Some(environment_metrics) = environment_metrics.get_or_init(compute_environment_metrics).await.get(&packet.id) {
                             packet.payload = Payload::EnvironmentMetrics(environment_metrics.clone())
+                        } else if let Some(power_metrics) = power_metrics.get_or_init(compute_power_metrics).await.get(&packet.id) {
+                            packet.payload = Payload::PowerMetrics(power_metrics.clone())
                         }
                     }
                     Ok(PortNum::NeighborinfoApp) => {

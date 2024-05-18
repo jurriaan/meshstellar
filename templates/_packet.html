@@ -113,6 +113,35 @@
                 <dt>IAQ</dt>
                 <dd>{{ metrics.iaq }}</dd>
                 {% endif %}
+            {% when Payload::PowerMetrics with (metrics) %}
+                {% if let Some(time) = metrics.time %}
+                <dt>Time</dt>
+                <dd>{{self::format_timestamp(time)}}</dd>
+                {% endif %}
+                {% if metrics.ch1_voltage != 0.0 %}
+                <dt>CH1 Voltage</dt>
+                <dd>{{"{:.3} V"|format(metrics.ch1_voltage)}}</dd>
+                {% endif %}
+                {% if metrics.ch1_current != 0.0 %}
+                <dt>CH1 Current</dt>
+                <dd>{{"{:.6} A"|format(metrics.ch1_current)}}</dd>
+                {% endif %}
+                {% if metrics.ch2_voltage != 0.0 %}
+                <dt>CH2 Voltage</dt>
+                <dd>{{"{:.3} V"|format(metrics.ch2_voltage)}}</dd>
+                {% endif %}
+                {% if metrics.ch2_current != 0.0 %}
+                <dt>CH2 Current</dt>
+                <dd>{{"{:.6} A"|format(metrics.ch2_current)}}</dd>
+                {% endif %}
+                {% if metrics.ch3_voltage != 0.0 %}
+                <dt>CH3 Voltage</dt>
+                <dd>{{"{:.3} V"|format(metrics.ch3_voltage)}}</dd>
+                {% endif %}
+                {% if metrics.ch3_current != 0.0 %}
+                <dt>CH3 Current</dt>
+                <dd>{{"{:.6} A"|format(metrics.ch3_current)}}</dd>
+                {% endif %}
             {% when Payload::Neighbors with (neighbors) %}
                 {% for neighbor in neighbors %}
                     <dt>Neighbor</dt>

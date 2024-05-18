@@ -5,10 +5,10 @@ use sqlx::Row;
 use crate::proto::meshtastic::{mesh_packet::Priority, PortNum};
 use crate::util::capitalize;
 
-use super::RoutingDto;
 use super::{
     DeviceMetricsSelectResult, EnvironmentMetricsSelectResult, NeighborSelectResult,
-    PositionSelectResult, TracerouteDto, WaypointSelectResult,
+    PositionSelectResult, PowerMetricsSelectResult, RoutingDto, TracerouteDto,
+    WaypointSelectResult,
 };
 
 #[derive(Clone, Default)]
@@ -18,6 +18,7 @@ pub enum Payload {
     Position(PositionSelectResult),
     DeviceMetrics(DeviceMetricsSelectResult),
     EnvironmentMetrics(EnvironmentMetricsSelectResult),
+    PowerMetrics(PowerMetricsSelectResult),
     Neighbors(Vec<NeighborSelectResult>),
     Traceroute(TracerouteDto),
     Routing(RoutingDto),
