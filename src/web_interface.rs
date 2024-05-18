@@ -245,11 +245,13 @@ fn mesh_packet_stream(
                 WHERE id IN (
                     SELECT id FROM mesh_packets
                     WHERE rx_time > ?1
+                    AND duplicate_of_mesh_packet_id IS NULL
                     ORDER BY rx_time DESC
                     LIMIT 100
                 ) OR id IN (
                     SELECT id FROM mesh_packets
                     WHERE rx_time > ?1 AND portnum = ?2
+                    AND duplicate_of_mesh_packet_id IS NULL
                     ORDER BY rx_time DESC
                     LIMIT 100
                 )
