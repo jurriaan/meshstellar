@@ -370,6 +370,27 @@ async fn handle_telemetry_payload(
                 .execute(&mut **txn)
                 .await?;
             }
+            Some(telemetry::Variant::PowerMetrics(power_metrics_payload)) => {
+                let _ = sqlx::query_as!(
+                    ReturningId,
+                    "INSERT INTO power_metrics (mesh_packet_id, node_id, time, ch1_voltage, ch1_current, ch2_voltage, ch2_current, ch3_voltage, ch3_current)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     RETURNING id",
+                    mesh_packet_id,
+                    packet.from,
+                    time,
+                    power_metrics_payload.ch1_voltage,
+                    power_metrics_payload.ch1_current,
+                    power_metrics_payload.ch2_voltage,
+                    power_metrics_payload.ch2_current,
+                    power_metrics_payload.ch3_voltage,
+                    power_metrics_payload.ch3_current,
+                )
+                .fetch_one(&mut **txn)
+                .await?;
+
+                // Not stored in nodes table currently
+            }
             _ => {
                 println!("Telemetry{:?}", telemetry_payload);
             }
