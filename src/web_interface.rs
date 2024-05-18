@@ -327,7 +327,7 @@ fn mesh_packet_stream(
             let compute_environment_metrics = || {
                 async {
                 let query = format!(
-                    r#"SELECT mesh_packet_id, time, temperature, relative_humidity, barometric_pressure, gas_resistance, iaq FROM enviroment_metrics WHERE mesh_packet_id IN ({})"#,
+                    r#"SELECT mesh_packet_id, time, temperature, relative_humidity, barometric_pressure, gas_resistance, iaq FROM environment_metrics WHERE mesh_packet_id IN ({})"#,
                      packet_ids_string
                 );
                 sqlx::query_as::<_, EnvironmentMetricsSelectResult>(&query)
