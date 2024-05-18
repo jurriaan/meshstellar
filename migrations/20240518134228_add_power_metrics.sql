@@ -1,4 +1,3 @@
--- Add migration script here
 CREATE TABLE "power_metrics" (
     "id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
     "mesh_packet_id" integer UNIQUE NOT NULL,
