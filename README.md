@@ -73,7 +73,7 @@ docker run \
   -e MESHSTELLAR_MQTT_HOST="mqtt-host-here" \
   -e MESHSTELLAR_MQTT_AUTH="true" \
   -e MESHSTELLAR_MQTT_USERNAME="username" \
-  -e MESHSTELLAR_MQTT_PASSWORD="username" \
+  -e MESHSTELLAR_MQTT_PASSWORD="password" \
   -e MESHSTELLAR_MQTT_TOPIC="msh/#" \
   -v meshstellar_data:/home/meshstellar:z \
   ghcr.io/jurriaan/meshstellar:latest
