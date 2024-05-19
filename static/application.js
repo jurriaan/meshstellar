@@ -117,6 +117,8 @@ function loadingFinished() {
 }
 
 function _updateNodeGeoJSON() {
+    _refreshOnlineState();
+
     const nodeList = htmx.find('.node-list');
     const showOld = nodeList.classList.contains('show-old');
     const nodes = Array.from(htmx.findAll(nodeList, 'li'));
@@ -268,7 +270,6 @@ function refreshMap() {
 function handleSseMessage(event) {
     const eventType = event?.detail?.type;
     if (eventType == 'update-node') {
-        refreshOnlineState();
         updateNodeGeoJSON();
     } else if (eventType == 'mesh-packet') {
         refreshOnlineState();
@@ -336,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadMap();
     document.body.addEventListener("htmx:sseMessage", handleSseMessage);
     document.body.addEventListener("refreshMap", refreshMap);
-    setInterval(function () { refreshOnlineState() }, 30000);
+    setInterval(function () { refreshMap() }, 30000);
 
     const resizer = document.querySelector("#resizer");
     // Listening for both mousedown and touchstart events
