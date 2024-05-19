@@ -33,6 +33,7 @@ end
         </section>
 
         <section id="packets" class="tab-content">
+          <button class="hide" _="on click send hideSidebar to body">{{- self::icon("close")|safe ~}}</button>
           <h1>Packets</h1>
           <ol class="packet-list" sse-swap="mesh-packet,text-message" hx-swap="afterbegin" _="
             on htmx:afterSwap debounced at 100ms
@@ -43,6 +44,7 @@ end
         </section>
 
         <section id="messages" class="tab-content">
+          <button class="hide" _="on click send hideSidebar to body">{{- self::icon("close")|safe ~}}</button>
           <h1>Messages</h1>
           <ol class="packet-list" sse-swap="text-message" hx-swap="afterbegin" _="
             on htmx:afterSwap debounced at 100ms
