@@ -51,7 +51,7 @@ body {
     z-index: 10;
     right: auto;
     font-size: 2em;
-    padding: 0.5em 1em;
+    padding: 0.8em;
 }
 
 #sidebar.collapsed>#resizer {

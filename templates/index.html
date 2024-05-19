@@ -10,13 +10,13 @@ end
 </script>
   <div id="map"></div>
   <aside id="sidebar" hidden>
-    <button class="show" _="on click send showSidebar to body">☰</button>
+    <button class="show" _="on click send showSidebar to body">{{- self::icon("menu")|safe ~}}</button>
     <div id="resizer"><div></div></div>
     <div id="sidebar-main">
       <div class="tab-content-container">
         <section id="nodes" class="tab-content">
           <button class="about" _="on click showModal() on #about">About</button>
-          <button class="hide" _="on click send hideSidebar to body">✕</button>
+          <button class="hide" _="on click send hideSidebar to body">{{- self::icon("close")|safe ~}}</button>
 
           <h1>Nodes</h1>
           <ol class="node-list" sse-swap="update-node" hx-swap="afterbegin" _="on htmx:afterSwap debounced at 100ms updateNodes()">

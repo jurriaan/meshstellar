@@ -4,6 +4,7 @@
     hide #sidebar-details
     call selectNode(null)
 ">Back</button>
+<button class="hide" _="on click send hideSidebar to body">{{- self::icon("close")|safe ~}}</button>
 <h1 style="font-weight: normal;">
     {%- if let (Some(short_name), Some(long_name)) = (node.short_name|as_ref, node.long_name|as_ref) -%}
         <strong>[{{ short_name }}]</strong> {{ long_name }}
