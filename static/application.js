@@ -337,6 +337,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loadMap();
     document.body.addEventListener("htmx:sseMessage", handleSseMessage);
     document.body.addEventListener("refreshMap", refreshMap);
+    document.body.addEventListener("hideSidebar", hideSidebar);
+    document.body.addEventListener("showSidebar", showSidebar);
     setInterval(function () { refreshMap() }, 30000);
 
     const resizer = document.querySelector("#resizer");
@@ -377,7 +379,18 @@ function resize(e) {
         sidebar.style.width = `${clientX}px`;
         sidebar.classList.remove('collapsed');
     } else {
-        sidebar.style.width = 'auto';
-        sidebar.classList.add('collapsed');
+        hideSidebar();
     }
+}
+
+function hideSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.style.width = 'auto';
+    sidebar.classList.add('collapsed');
+}
+
+function showSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.style.width = 'auto';
+    sidebar.classList.remove('collapsed');
 }

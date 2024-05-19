@@ -43,6 +43,17 @@ body {
     display: none;
 }
 
+#sidebar.collapsed>button.show {
+    display: block;
+    left: 0;
+    top: 0;
+    pointer-events: all;
+    z-index: 10;
+    right: auto;
+    font-size: 2em;
+    padding: 0.5em 1em;
+}
+
 #sidebar.collapsed>#resizer {
     display: block;
     padding-right: 2.5rem;
@@ -116,7 +127,7 @@ ol {
     margin: 0;
 }
 
-.node-list li ,
+.node-list li,
 .packet-list li {
     padding: .5em 1em;
     cursor: pointer;
@@ -274,8 +285,10 @@ button.back {
     cursor: pointer;
     margin: .8rem 0;
     height: 1.6em;
+    min-width: 1.6em;
     font-size: 1em;
     line-height: 1.6em;
+
     background: white;
     border-radius: 5px;
     border: none;
@@ -285,6 +298,24 @@ button.back {
 
 button.about {
     margin: .8rem 1rem;
+}
+
+button.hide,
+button.show {
+    box-sizing: content-box;
+    position: absolute;
+    right: 0;
+    font-size: 1.1em;
+    padding: 1em 1.2em;
+    margin: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    cursor: pointer;
+}
+
+button.show {
+    display: none
 }
 
 /* Reduce font size and margin for smaller devices */
