@@ -36,6 +36,7 @@ use futures::{
 use geojson::{Feature, GeoJson, Geometry, JsonObject, JsonValue};
 use itertools::Itertools;
 use prost::Message;
+use serde::Deserialize;
 use serde_json::json;
 use sqlx::SqlitePool;
 use std::{collections::HashMap, sync::OnceLock};
@@ -511,11 +512,25 @@ impl FromIterator<NodePosition> for Feature {
     }
 }
 
+#[derive(Deserialize)]
+struct MaxAge {
+    max_age: Option<u32>,
+}
+
 async fn node_positions_geojson(
     pool: State<SqlitePool>,
     Path((node_id,)): Path<(String,)>,
+    max_age: axum::extract::Query<MaxAge>,
 ) -> axum::response::Result<impl IntoResponse> {
     let node_id = u32::from_str_radix(&node_id, 16).map_err(stringify)?;
+
+    let max_age_time_nanos = if let Some(max_age) = max_age.max_age {
+        let cur_time = Utc::now().timestamp_nanos_opt().unwrap();
+        cur_time - (max_age as i64 * 60_000_000_000)
+    } else {
+        0
+    };
+
     let query_res: Vec<NodePosition> = sqlx::query_as!(
         NodePosition,
         r#"
@@ -525,11 +540,12 @@ async fn node_positions_geojson(
                 positions.altitude
             FROM positions
             JOIN mesh_packets ON positions.mesh_packet_id = mesh_packets.id
-            WHERE node_id = ?
+            WHERE node_id = ? AND rx_time > ?
             ORDER BY rx_time DESC
             LIMIT 250
             "#,
         node_id,
+        max_age_time_nanos
     )
     .fetch_all(&*pool)
     .await

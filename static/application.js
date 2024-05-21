@@ -48,6 +48,7 @@ const emptyFeatureCollection = { type: 'FeatureCollection', features: [] };
 
 function selectNode(node) {
     const nodeEl = node ? htmx.find('#' + node?.id) : null;
+    const maxAgeInMinutes = getMaxAgeInMinutes();
     selectedNode?.classList?.remove('selected')
 
     map.getSource('positions').setData(emptyFeatureCollection);
@@ -68,7 +69,12 @@ function selectNode(node) {
             }
         }
         nodeEl?.classList?.add('selected')
-        map.getSource('positions').setData(`/node/${node.dataset.nodeId}/positions.geojson`);
+        let url = `/node/${node.dataset.nodeId}/positions.geojson`;
+
+        if (maxAgeInMinutes != null) {
+            url += '?max_age=' + maxAgeInMinutes;
+        }
+        map.getSource('positions').setData(url);
     }
     _updateNodeGeoJSON();
 }

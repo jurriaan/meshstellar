@@ -329,7 +329,10 @@ button.about {
 #settings input {
     display: block;
     width: 100%;
-    margin-bottom: 1.5em;
+}
+
+#settings .input-note {
+    margin-top: 0;
 }
 
 #settings.visible {
