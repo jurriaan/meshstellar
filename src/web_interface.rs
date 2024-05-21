@@ -60,11 +60,7 @@ struct AppState {
 }
 
 async fn index() -> impl IntoResponse {
-    let version = option_env!("VERGEN_GIT_DESCRIBE")
-        .unwrap_or("v0.0")
-        .to_string();
-
-    into_response(&IndexTemplate { version })
+    into_response(&IndexTemplate {})
 }
 
 fn stats_update_stream(

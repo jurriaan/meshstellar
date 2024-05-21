@@ -10,12 +10,11 @@ use chrono::prelude::*;
 use chrono::TimeDelta;
 
 const SVG_ICONS_CONTENT: &str = include_str!(env!("SVG_ICONS_PATH"));
+const GIT_VERSION: &str = env!("VERGEN_GIT_DESCRIBE");
 
 #[derive(Template)]
 #[template(path = "index.html")]
-pub(crate) struct IndexTemplate {
-    pub version: String,
-}
+pub(crate) struct IndexTemplate {}
 
 #[derive(Template)]
 #[template(path = "_stats.html")]

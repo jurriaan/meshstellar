@@ -85,9 +85,9 @@ end
     <button class="close" _="on click close() on #about">Close</button>
     <h1>About</h1>
     {{- self::logo()|safe ~}}
-    <p><strong>Meshstellar {{version}}</strong></p>
+    <p><strong>Meshstellar {{self::GIT_VERSION}}</strong></p>
 
-    <p>For more information see <a href="https://github.com/jurriaan/meshstellar">meshstellar on GitHub</a></p>
+    <p>For more information see <a href="https://github.com/jurriaan/meshstellar" target="_blank">meshstellar on GitHub</a></p>
 
     <div id="statistics" sse-swap="statistics">
     </div>
