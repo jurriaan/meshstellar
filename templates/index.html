@@ -15,21 +15,32 @@ end
     <div id="sidebar-main">
       <div class="tab-content-container">
         <section id="nodes" class="tab-content">
-          <button class="about" _="on click showModal() on #about">About</button>
+          <button class="settings" _="on click toggle .visible on #settings">{{- self::icon("cogs")|safe ~}}</button>
           <button class="hide" _="on click send hideSidebar to body">{{- self::icon("close")|safe ~}}</button>
 
-          <h1>Nodes</h1>
+          <h1 id="node-header">Nodes</h1>
+          <div id="settings">
+            <label for="max-age">Show last 1 hour</label>
+            <input type="range" list="max-age-marks" min="0" max="7" step="1" id="max-age" name="tick" value="1" _="
+                on input put <datalist#max-age-marks option[value='${my.value}'] />'s innerHTML into <label[for='max-age'] />
+                on change send updateFilter(maxAge: <datalist#max-age-marks option[value='${my.value}'] />'s dataset.minutes[0]) to body
+                "
+            />
+            <datalist id="max-age-marks">
+                <option value="0" data-minutes="30">Show last 30 min</option>
+                <option value="1" data-minutes="60">Show last 1 hour</option>
+                <option value="2" data-minutes="180">Show last 3 hours</option>
+                <option value="3" data-minutes="360">Show last 6 hours</option>
+                <option value="4" data-minutes="720">Show last 12 hours</option>
+                <option value="5" data-minutes="1440">Show last 24 hours</option>
+                <option value="6" data-minutes="2880">Show last 48 hours</option>
+                <option value="7" data-minutes="all">Show all</option>
+            </datalist>
+
+            <button class="about" _="on click showModal() on #about">About Meshstellar</button>
+          </div>
           <ol class="node-list" sse-swap="update-node" hx-swap="afterbegin" _="on htmx:afterSwap debounced at 100ms updateNodes()">
           </ol>
-          <button class="list-action" _="
-            on click
-            tell the previous .node-list
-              toggle .show-old on you
-              send refreshMap to body
-              if you match .show-old
-              set my innerHTML to 'Hide old nodes'
-              else set my innerHTML to 'Show old nodes'
-          ">Show old nodes</button>
         </section>
 
         <section id="packets" class="tab-content">

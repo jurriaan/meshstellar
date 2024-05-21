@@ -156,10 +156,6 @@ ol {
     display: none;
 }
 
-.node-list.show-old li.is-old {
-    display: block;
-}
-
 .node-list li:hover {
     background-color: rgba(255, 255, 255, 0.5);
 
@@ -279,7 +275,6 @@ svg.logo {
     display: block;
 }
 
-button.about,
 button.back {
     position: absolute;
     cursor: pointer;
@@ -296,10 +291,7 @@ button.back {
     font-weight: 500;
 }
 
-button.about {
-    margin: .8rem 1rem;
-}
-
+button.settings,
 button.hide,
 button.show {
     box-sizing: content-box;
@@ -314,8 +306,34 @@ button.show {
     cursor: pointer;
 }
 
+button.settings {
+    right: auto;
+    left: 0;
+}
+
 button.show {
     display: none
+}
+
+button.about {
+    margin: 0 auto;
+}
+
+#settings {
+    padding: .5em 1em;
+
+    display: none;
+    padding-bottom: 1em;
+}
+
+#settings input {
+    display: block;
+    width: 100%;
+    margin-bottom: 1.5em;
+}
+
+#settings.visible {
+    display: block;
 }
 
 /* Reduce font size and margin for smaller devices */

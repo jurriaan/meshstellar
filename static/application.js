@@ -60,7 +60,7 @@ function selectNode(node) {
         if (geojson) {
             geojson = JSON.parse(geojson);
 
-            if(geojson.geometry && geojson.geometry.coordinates.length > 0) {
+            if (geojson.geometry && geojson.geometry.coordinates.length > 0) {
                 map.flyTo({
                     center: geojson.geometry.coordinates,
                     zoom: 12
@@ -116,11 +116,29 @@ function loadingFinished() {
     }
 }
 
+function getMaxAgeInMinutes() {
+    const rawValue = localStorage.getItem('maxAge');
+
+    if (rawValue == 'all') {
+        return null;
+    }
+
+    const parsedValue = parseInt(rawValue);
+
+    if (isFinite(parsedValue)) {
+        return parsedValue;
+    } else {
+        localStorage.removeItem('maxAge');
+
+        // Default to 60 minutes
+        return 60;
+    }
+}
+
 function _updateNodeGeoJSON() {
     _refreshOnlineState();
 
     const nodeList = htmx.find('.node-list');
-    const showOld = nodeList.classList.contains('show-old');
     const nodes = Array.from(htmx.findAll(nodeList, 'li'));
     const selectedIndex = nodes.findIndex((node) => node.classList.contains('selected'));
     if (selectedIndex > 0) nodes.unshift(nodes.splice(selectedIndex, 1)[0]);
@@ -140,7 +158,7 @@ function _updateNodeGeoJSON() {
                 isOld: node.classList.contains('is-old')
             }
         })
-        .filter((node) => node.selected || (showOld || !node.isOld));
+        .filter((node) => node.selected || !node.isOld);
 
     nodeGeoJSON.features = nodeData.map((nodeData) => nodeData.geojson).filter((geojson) => geojson);
     nodeGeoJSON.features.forEach((node) => {
@@ -228,9 +246,14 @@ function animate() {
 function _refreshOnlineState() {
     const sidebar = htmx.find('#sidebar');
     applyRelativeDateTime(sidebar);
+    const nodeHeader = htmx.find('h1#node-header');
 
     const nodes = htmx.findAll('.node-list li');
     const curDate = (Date.now() / 1000).toFixed(0);
+    const maxAgeInMinutes = getMaxAgeInMinutes();
+
+    let numNodes = 0;
+    let onlineNodes = 0;
 
     for (const node of nodes) {
         const timeNode = htmx.find(node, 'time.relative[datetime]');
@@ -241,8 +264,7 @@ function _refreshOnlineState() {
             const age = Math.abs(curDate - nodeTime);
             const isOnline = age < 15 * 60;
             node.dataset.isOnline = isOnline;
-            const isOld = age > 86400 * 1.5;
-            node.dataset.isOld = isOld;
+            const isOld = maxAgeInMinutes != null && age > maxAgeInMinutes * 60;
 
             if (isOnline) {
                 node.classList.remove('is-offline');
@@ -256,9 +278,16 @@ function _refreshOnlineState() {
                 node.classList.add('is-old');
             } else {
                 node.classList.remove('is-old');
+
+                numNodes += 1;
+                if (isOnline) {
+                    onlineNodes += 1;
+                }
             }
         }
     }
+
+    nodeHeader.innerText = onlineNodes + " of " + numNodes + " online";
 }
 
 const refreshOnlineState = debounce(_refreshOnlineState, 250);
@@ -339,6 +368,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.addEventListener("refreshMap", refreshMap);
     document.body.addEventListener("hideSidebar", hideSidebar);
     document.body.addEventListener("showSidebar", showSidebar);
+    document.body.addEventListener("updateFilter", updateFilter);
+    initFilter();
     setInterval(function () { refreshMap() }, 30000);
 
     const resizer = document.querySelector("#resizer");
@@ -393,4 +424,27 @@ function showSidebar() {
     const sidebar = document.getElementById('sidebar');
     sidebar.style.width = 'auto';
     sidebar.classList.remove('collapsed');
+}
+
+function updateFilter(event) {
+    if (event.detail && event.detail.maxAge) {
+        localStorage.setItem("maxAge", event.detail.maxAge);
+
+        _updateNodeGeoJSON();
+    }
+}
+
+function initFilter() {
+    const datalist = document.getElementById('max-age-marks');
+    const input = document.getElementById('max-age');
+
+    const maxAgeInMinutesValue = getMaxAgeInMinutes();
+    const maxAgeInMinutes = maxAgeInMinutesValue == null ? 'all' : maxAgeInMinutesValue.toFixed(0);
+    const element = htmx.find(datalist, "[data-minutes='" + maxAgeInMinutes + "']");
+
+    input.value = element.value;
+
+    // Trigger event
+    const event = new Event('input');
+    input.dispatchEvent(event);
 }
