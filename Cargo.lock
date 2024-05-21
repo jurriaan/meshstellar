@@ -202,6 +202,7 @@ dependencies = [
  "pin-project-lite",
  "rustversion",
  "serde",
+ "serde_urlencoded",
  "sync_wrapper 1.0.1",
  "tokio",
  "tower",
@@ -1209,6 +1210,7 @@ dependencies = [
  "regex",
  "rumqttc",
  "rust-embed",
+ "serde",
  "serde_json",
  "sqlx",
  "thiserror",
@@ -2021,6 +2023,18 @@ version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "79e674e01f999af37c49f70a6ede167a8a60b2503e56c5599532a65baa5969a0"
 dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "serde_urlencoded"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3491c14715ca2294c4d6a88f15e84739788c1d030eed8c110436aafdaa2f3fd"
+dependencies = [
+ "form_urlencoded",
+ "itoa",
+ "ryu",
  "serde",
 ]
 
