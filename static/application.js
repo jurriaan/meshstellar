@@ -328,6 +328,21 @@ function loadMap() {
         map.addImage('node-symbol', (await image).data, { sdf: true });
     });
 
+    map.on('click', 'node-symbols', (e) => {
+        if (e.features && e.features.length > 0) {
+            const feature = e.features[0];
+
+            // Bit of a hack, but needed to trigger the same logic as an actual click.
+            if (feature.properties && feature.properties.id) {
+                const nodeEl = htmx.find('#node-list-node-' + feature.properties.id + ' div');
+
+                if(nodeEl) {
+                    nodeEl.click();
+                }
+            }
+        }
+    });
+
     window.map = map;
 
     return map;
