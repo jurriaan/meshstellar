@@ -1,11 +1,11 @@
 use anyhow::anyhow;
-use chrono::{DateTime, Duration, Timelike, Utc};
+use chrono::{DateTime, Duration, FixedOffset, Timelike, Utc};
 use itertools::{Itertools, MinMaxResult};
 use plotters::prelude::*;
 
 pub fn plot_timeseries_svg(
     label: &str,
-    entries: Vec<(DateTime<Utc>, f64)>,
+    entries: Vec<(DateTime<FixedOffset>, f64)>,
 ) -> anyhow::Result<String> {
     if let MinMaxResult::MinMax(min_y, max_y) = entries.iter().map(|r| r.1).minmax() {
         let mut buf = String::new();
@@ -28,8 +28,8 @@ pub fn plot_timeseries_svg(
             let mut mesh = chart
                 .configure_mesh();
 
-            if last_entry.0 - first_entry.0 < Duration::hours(48) && Utc::now() - last_entry.0 < Duration::hours(24) {
-                mesh.x_label_formatter(&|x| format!("{:02}:{:02}Z", x.hour(), x.minute()))
+            if last_entry.0 - first_entry.0 < Duration::hours(48) && Utc::now() - last_entry.0.to_utc() < Duration::hours(24) {
+                mesh.x_label_formatter(&|x| format!("{:02}:{:02}", x.hour(), x.minute()))
             } else {
                 &mut mesh
             }

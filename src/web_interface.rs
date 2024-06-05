@@ -29,7 +29,7 @@ use axum::{
     routing::get,
     Router,
 };
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, FixedOffset, TimeZone, Utc};
 use futures::{
     stream::{select_all, Stream},
     FutureExt,
@@ -609,9 +609,16 @@ async fn node_details(
         0
     };
 
+    let offset_minutes : i32 = headers.get("x-meshstellar-tz-offset").map(|x| x.to_str().unwrap_or("0")).and_then(|x| x.parse().ok()).unwrap_or_default();
+    let offset = if offset_minutes.abs() < 24 * 60  {
+        FixedOffset::west_opt(offset_minutes * 60).unwrap_or_else(|| FixedOffset::west_opt(0).unwrap())
+    } else {
+        FixedOffset::west_opt(0).unwrap()
+    };
+
     Ok(into_response(&NodeDetailsTemplate {
         node,
-        plots: create_plots(pool, node_id, min_time_nanos).await.unwrap_or_default(),
+        plots: create_plots(pool, node_id, min_time_nanos, offset).await.unwrap_or_default(),
     }))
 }
 
@@ -635,8 +642,9 @@ async fn create_plots(
     pool: State<SqlitePool>,
     node_id: i64,
     min_time: i64,
+    time_zone_offset: FixedOffset
 ) -> axum::response::Result<Vec<PlotData>> {
-    let mut entries_map : HashMap<String, Vec<(DateTime<Utc>, f64)>>= sqlx::query!(
+    let mut entries_map : HashMap<String, Vec<(DateTime<FixedOffset>, f64)>>= sqlx::query!(
         r#"
             SELECT * FROM (SELECT 'R' as plot_type, rx_time as "time!", CAST(rx_rssi AS REAL) AS "value!" FROM mesh_packets WHERE from_id = ?1 AND rx_time IS NOT NULL AND rx_time > ?2 AND rx_rssi != 0 ORDER BY "time!" DESC LIMIT 100)
             UNION ALL SELECT * FROM (SELECT 'S' as plot_type, rx_time as "time!", rx_snr AS "value!" FROM mesh_packets WHERE from_id = ?1 AND rx_time IS NOT NULL AND rx_time > ?2 AND rx_snr != 0 ORDER BY "time!" DESC LIMIT 100)
@@ -655,7 +663,7 @@ async fn create_plots(
     .map_err(DatabaseError)?
     .into_iter()
     .rev()
-    .map(|record| (record.plot_type, (Utc.timestamp_nanos(record.time), record.value)))
+    .map(|record| (record.plot_type, (Utc.timestamp_nanos(record.time).with_timezone(&time_zone_offset), record.value)))
     .into_grouping_map()
     .collect();
 

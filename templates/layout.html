@@ -16,7 +16,7 @@
 </head>
 
 <body hx-ext="custom,morph,sse" sse-connect="/events">
-    <main>
+    <main hx-headers="javascript:{'x-meshstellar-tz-offset': ((new Date()).getTimezoneOffset())}">
         {{ self::SVG_ICONS_CONTENT|safe }}
         {% block body %}{% endblock %}
     </main>
