@@ -18,6 +18,7 @@ use crate::{
 };
 use askama::Template;
 use async_stream::stream;
+use axum::http::HeaderMap;
 use axum::{
     extract::{FromRef, Path, State},
     http::{header, Uri},
@@ -555,6 +556,7 @@ async fn node_positions_geojson(
 async fn node_details(
     pool: State<SqlitePool>,
     Path((node_id,)): Path<(String,)>,
+    headers: HeaderMap,
 ) -> axum::response::Result<impl IntoResponse> {
     let node_id = i64::from_str_radix(&node_id, 16).map_err(stringify)? as i64;
     // TODO: improve query to match neighbor node updates or setup new struct.
@@ -598,9 +600,18 @@ async fn node_details(
     .await
     .map_err(DatabaseError)?;
 
+    let max_age_minutes : Option<i64> = headers.get("x-meshstellar-max-age").map(|x| x.to_str().unwrap_or("all")).and_then(|x| x.parse().ok());
+
+    let min_time_nanos = if let Some(max_age) = max_age_minutes {
+        let cur_time = Utc::now().timestamp_nanos_opt().unwrap();
+        cur_time - (max_age as i64 * 60_000_000_000)
+    } else {
+        0
+    };
+
     Ok(into_response(&NodeDetailsTemplate {
         node,
-        plots: create_plots(pool, node_id).await.unwrap_or_default(),
+        plots: create_plots(pool, node_id, min_time_nanos).await.unwrap_or_default(),
     }))
 }
 
@@ -623,20 +634,21 @@ fn plot_labels() -> &'static Vec<(&'static str, &'static str)> {
 async fn create_plots(
     pool: State<SqlitePool>,
     node_id: i64,
+    min_time: i64,
 ) -> axum::response::Result<Vec<PlotData>> {
     let mut entries_map : HashMap<String, Vec<(DateTime<Utc>, f64)>>= sqlx::query!(
         r#"
-            SELECT * FROM (SELECT 'R' as plot_type, rx_time as "time!", CAST(rx_rssi AS REAL) AS "value!" FROM mesh_packets WHERE from_id = ?1 AND rx_time IS NOT NULL AND rx_rssi != 0 ORDER BY "time!" DESC LIMIT 100)
-            UNION ALL SELECT * FROM (SELECT 'S' as plot_type, rx_time as "time!", rx_snr AS "value!" FROM mesh_packets WHERE from_id = ?1 AND rx_time IS NOT NULL AND rx_snr != 0 ORDER BY "time!" DESC LIMIT 100)
-            UNION ALL SELECT * FROM (SELECT 'C' as plot_type, time as "time!", channel_utilization AS "value!" FROM device_metrics WHERE node_id = ?1 AND time IS NOT NULL AND channel_utilization > 0 ORDER BY "time!" DESC LIMIT 100)
-            UNION ALL SELECT * FROM (SELECT 'A' as plot_type, time as "time!", air_util_tx AS "value!" FROM device_metrics WHERE node_id = ?1 AND time IS NOT NULL AND air_util_tx > 0 ORDER BY "time!" DESC LIMIT 100)
-            UNION ALL SELECT * FROM (SELECT 'V' as plot_type, time as "time!", voltage AS "value!" FROM device_metrics WHERE node_id = ?1 AND time IS NOT NULL AND voltage > 0 ORDER BY "time!" DESC LIMIT 100)
-            UNION ALL SELECT * FROM (SELECT 'T' as plot_type, time as "time!", temperature AS "value!" FROM environment_metrics WHERE node_id = ?1 AND time IS NOT NULL AND temperature > -100 ORDER BY "time!" DESC LIMIT 100)
-            UNION ALL SELECT * FROM (SELECT 'H' as plot_type, time as "time!", relative_humidity AS "value!" FROM environment_metrics WHERE node_id = ?1 AND time IS NOT NULL AND relative_humidity > 0 ORDER BY "time!" DESC LIMIT 100)
-            UNION ALL SELECT * FROM (SELECT 'B' as plot_type, time as "time!", barometric_pressure AS "value!" FROM environment_metrics WHERE node_id = ?1 AND time IS NOT NULL AND barometric_pressure > 0 ORDER BY "time!" DESC LIMIT 100)
+            SELECT * FROM (SELECT 'R' as plot_type, rx_time as "time!", CAST(rx_rssi AS REAL) AS "value!" FROM mesh_packets WHERE from_id = ?1 AND rx_time IS NOT NULL AND rx_time > ?2 AND rx_rssi != 0 ORDER BY "time!" DESC LIMIT 100)
+            UNION ALL SELECT * FROM (SELECT 'S' as plot_type, rx_time as "time!", rx_snr AS "value!" FROM mesh_packets WHERE from_id = ?1 AND rx_time IS NOT NULL AND rx_time > ?2 AND rx_snr != 0 ORDER BY "time!" DESC LIMIT 100)
+            UNION ALL SELECT * FROM (SELECT 'C' as plot_type, time as "time!", channel_utilization AS "value!" FROM device_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND channel_utilization > 0 ORDER BY "time!" DESC LIMIT 100)
+            UNION ALL SELECT * FROM (SELECT 'A' as plot_type, time as "time!", air_util_tx AS "value!" FROM device_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND air_util_tx > 0 ORDER BY "time!" DESC LIMIT 100)
+            UNION ALL SELECT * FROM (SELECT 'V' as plot_type, time as "time!", voltage AS "value!" FROM device_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND voltage > 0 ORDER BY "time!" DESC LIMIT 100)
+            UNION ALL SELECT * FROM (SELECT 'T' as plot_type, time as "time!", temperature AS "value!" FROM environment_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND temperature > -100 ORDER BY "time!" DESC LIMIT 100)
+            UNION ALL SELECT * FROM (SELECT 'H' as plot_type, time as "time!", relative_humidity AS "value!" FROM environment_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND relative_humidity > 0 ORDER BY "time!" DESC LIMIT 100)
+            UNION ALL SELECT * FROM (SELECT 'B' as plot_type, time as "time!", barometric_pressure AS "value!" FROM environment_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND barometric_pressure > 0 ORDER BY "time!" DESC LIMIT 100)
             ORDER BY plot_type, "time!" DESC;
         "#,
-        node_id
+        node_id, min_time
     )
     .fetch_all(&*pool)
     .await

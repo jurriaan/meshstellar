@@ -23,6 +23,7 @@ end
             <label for="max-age">Show last 1 hour</label>
             <input type="range" list="max-age-marks" min="0" max="7" step="1" id="max-age" name="tick" value="1" _="
                 on input put <datalist#max-age-marks option[value='${my.value}'] />'s innerHTML into <label[for='max-age'] />
+                on input tell <aside#sidebar /> set @hx-headers to JSON.stringify({'x-meshstellar-max-age': <datalist#max-age-marks option[value='${my.value}'] />'s dataset.minutes[0]})
                 on change send updateFilter(maxAge: <datalist#max-age-marks option[value='${my.value}'] />'s dataset.minutes[0]) to body
                 "
             />
