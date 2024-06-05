@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Timelike, Utc};
 use itertools::{Itertools, MinMaxResult};
 use plotters::prelude::*;
 
@@ -25,8 +25,14 @@ pub fn plot_timeseries_svg(
                 .y_label_area_size(30)
                 .build_cartesian_2d(first_entry.0..last_entry.0, min_y..max_y)?;
 
-            chart
-                .configure_mesh()
+            let mut mesh = chart
+                .configure_mesh();
+
+            if last_entry.0 - first_entry.0 < Duration::hours(48) && Utc::now() - last_entry.0 < Duration::hours(24) {
+                mesh.x_label_formatter(&|x| format!("{:02}:{:02}Z", x.hour(), x.minute()))
+            } else {
+                &mut mesh
+            }
                 .y_labels(5)
                 .x_labels(4)
                 .disable_mesh()
