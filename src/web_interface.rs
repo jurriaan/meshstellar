@@ -600,25 +600,35 @@ async fn node_details(
     .await
     .map_err(DatabaseError)?;
 
-    let max_age_minutes : Option<i64> = headers.get("x-meshstellar-max-age").map(|x| x.to_str().unwrap_or("all")).and_then(|x| x.parse().ok());
+    let max_age_minutes: Option<i64> = headers
+        .get("x-meshstellar-max-age")
+        .map(|x| x.to_str().unwrap_or("all"))
+        .and_then(|x| x.parse().ok());
 
     let min_time_nanos = if let Some(max_age) = max_age_minutes {
         let cur_time = Utc::now().timestamp_nanos_opt().unwrap();
-        cur_time - (max_age as i64 * 60_000_000_000)
+        cur_time - (max_age * 60_000_000_000)
     } else {
         0
     };
 
-    let offset_minutes : i32 = headers.get("x-meshstellar-tz-offset").map(|x| x.to_str().unwrap_or("0")).and_then(|x| x.parse().ok()).unwrap_or_default();
-    let offset = if offset_minutes.abs() < 24 * 60  {
-        FixedOffset::west_opt(offset_minutes * 60).unwrap_or_else(|| FixedOffset::west_opt(0).unwrap())
+    let offset_minutes: i32 = headers
+        .get("x-meshstellar-tz-offset")
+        .map(|x| x.to_str().unwrap_or("0"))
+        .and_then(|x| x.parse().ok())
+        .unwrap_or_default();
+    let offset = if offset_minutes.abs() < 24 * 60 {
+        FixedOffset::west_opt(offset_minutes * 60)
+            .unwrap_or_else(|| FixedOffset::west_opt(0).unwrap())
     } else {
         FixedOffset::west_opt(0).unwrap()
     };
 
     Ok(into_response(&NodeDetailsTemplate {
         node,
-        plots: create_plots(pool, node_id, min_time_nanos, offset).await.unwrap_or_default(),
+        plots: create_plots(pool, node_id, min_time_nanos, offset)
+            .await
+            .unwrap_or_default(),
     }))
 }
 
@@ -642,7 +652,7 @@ async fn create_plots(
     pool: State<SqlitePool>,
     node_id: i64,
     min_time: i64,
-    time_zone_offset: FixedOffset
+    time_zone_offset: FixedOffset,
 ) -> axum::response::Result<Vec<PlotData>> {
     let mut entries_map : HashMap<String, Vec<(DateTime<FixedOffset>, f64)>>= sqlx::query!(
         r#"
