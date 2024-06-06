@@ -350,3 +350,19 @@ button.about {
         padding: .4em .5em;
     }
 }
+
+ul.gateway-selector {
+    cursor: pointer;
+}
+
+ul.gateway-selector li.selected {
+    text-decoration: underline;
+}
+
+.received-by-gateway h2 {
+    margin-bottom: 0;
+}
+
+.received-by-gateway p {
+    margin: 0;
+}

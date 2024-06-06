@@ -2,7 +2,7 @@
 {% block body %}
 <script type="text/hyperscript">
 def updateNodes()
-  tell <.node-name.fetch/> in <.tab-content-container />
+  tell <.node-name.fetch/> in <aside#sidebar />
     set selector to `#node-list-node-${you@data-node-id} .node-name`
     get the first <${selector}/> in body then
     if it exists set your innerHTML to its innerHTML
@@ -79,6 +79,7 @@ end
       on htmx:afterSwap debounced at 50ms
         hide #sidebar-main
         show #sidebar-details
+        updateNodes()
     ">
     </div>
   </aside>

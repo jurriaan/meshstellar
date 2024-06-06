@@ -1,5 +1,6 @@
 pub mod device_metrics_select_result;
 pub mod environment_metrics_select_result;
+pub mod gateway_packet_info;
 pub mod mesh_packet;
 pub mod neighbor_select_result;
 pub mod node_select_result;
@@ -15,6 +16,7 @@ pub mod waypoint_select_result;
 
 pub use device_metrics_select_result::DeviceMetricsSelectResult;
 pub use environment_metrics_select_result::EnvironmentMetricsSelectResult;
+pub use gateway_packet_info::GatewayPacketInfo;
 pub use mesh_packet::MeshPacket;
 pub use neighbor_select_result::NeighborSelectResult;
 pub use node_select_result::NodeSelectResult;

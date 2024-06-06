@@ -1,9 +1,8 @@
-use crate::util::template::into_response;
 use crate::{
     dto::{
         mesh_packet::Payload, DeviceMetricsSelectResult, EnvironmentMetricsSelectResult,
-        MeshPacket as MeshPacketDto, NeighborSelectResult, NodeSelectResult, PlotData,
-        PositionSelectResult, PowerMetricsSelectResult, RoutingDto, StatsSelectResult,
+        GatewayPacketInfo, MeshPacket as MeshPacketDto, NeighborSelectResult, NodeSelectResult,
+        PlotData, PositionSelectResult, PowerMetricsSelectResult, RoutingDto, StatsSelectResult,
         TracerouteDto, WaypointSelectResult,
     },
     proto::meshtastic::{routing, PortNum, RouteDiscovery, Routing},
@@ -13,7 +12,9 @@ use crate::{
         config::get_config,
         demoji,
         static_file::{Asset, StaticFile},
-        stringify, DatabaseError,
+        stringify,
+        template::into_response,
+        DatabaseError,
     },
 };
 use askama::Template;
@@ -553,9 +554,15 @@ async fn node_positions_geojson(
     Ok(([(header::CONTENT_TYPE, "application/geo+json")], res))
 }
 
+#[derive(Deserialize)]
+struct NodeDetailsQueryParams {
+    gateway: Option<String>,
+}
+
 async fn node_details(
     pool: State<SqlitePool>,
     Path((node_id,)): Path<(String,)>,
+    query: axum::extract::Query<NodeDetailsQueryParams>,
     headers: HeaderMap,
 ) -> axum::response::Result<impl IntoResponse> {
     let node_id = i64::from_str_radix(&node_id, 16).map_err(stringify)? as i64;
@@ -624,12 +631,48 @@ async fn node_details(
         FixedOffset::west_opt(0).unwrap()
     };
 
-    Ok(into_response(&NodeDetailsTemplate {
-        node,
-        plots: create_plots(pool, node_id, min_time_nanos, offset)
-            .await
-            .unwrap_or_default(),
-    }))
+    let gateway_packet_info: Vec<GatewayPacketInfo> = sqlx::query_as!(
+        GatewayPacketInfo,
+        r#"
+            SELECT gateway_id as "gateway_id!", COUNT(*) as num_packets FROM mesh_packets WHERE from_id = ?1 AND rx_time IS NOT NULL AND rx_time > ?2 AND gateway_id IS NOT NULL GROUP BY 1 ORDER BY num_packets DESC LIMIT 50
+        "#,
+        node_id, min_time_nanos
+    )
+    .fetch_all(&*pool)
+    .await
+    .map_err(DatabaseError)?;
+
+    let max_gateway = gateway_packet_info.first();
+
+    if let Some(max_gateway) = max_gateway {
+        // A bit too complicated way to find the gateway in the list..
+        let selected_node = query
+            .gateway
+            .as_ref()
+            .and_then(|selected| {
+                gateway_packet_info
+                    .iter()
+                    .find(|g| &g.gateway_id == selected)
+                    .map(|g| g.gateway_id.clone())
+            })
+            .unwrap_or(max_gateway.gateway_id.clone());
+
+        Ok(into_response(&NodeDetailsTemplate {
+            node,
+            plots: create_plots(pool, node_id, min_time_nanos, offset, &selected_node)
+                .await
+                .unwrap_or_default(),
+            gateway_packet_info,
+            selected_node: Some(selected_node),
+        }))
+    } else {
+        Ok(into_response(&NodeDetailsTemplate {
+            node,
+            plots: Vec::new(),
+            gateway_packet_info,
+            selected_node: None,
+        }))
+    }
 }
 
 fn plot_labels() -> &'static Vec<(&'static str, &'static str)> {
@@ -653,11 +696,12 @@ async fn create_plots(
     node_id: i64,
     min_time: i64,
     time_zone_offset: FixedOffset,
+    gateway_id: &String,
 ) -> axum::response::Result<Vec<PlotData>> {
     let mut entries_map : HashMap<String, Vec<(DateTime<FixedOffset>, f64)>>= sqlx::query!(
         r#"
-            SELECT * FROM (SELECT 'R' as plot_type, rx_time as "time!", CAST(rx_rssi AS REAL) AS "value!" FROM mesh_packets WHERE from_id = ?1 AND rx_time IS NOT NULL AND rx_time > ?2 AND rx_rssi != 0 ORDER BY "time!" DESC LIMIT 100)
-            UNION ALL SELECT * FROM (SELECT 'S' as plot_type, rx_time as "time!", rx_snr AS "value!" FROM mesh_packets WHERE from_id = ?1 AND rx_time IS NOT NULL AND rx_time > ?2 AND rx_snr != 0 ORDER BY "time!" DESC LIMIT 100)
+            SELECT * FROM (SELECT 'R' as plot_type, rx_time as "time!", CAST(rx_rssi AS REAL) AS "value!" FROM mesh_packets WHERE from_id = ?1 AND rx_time IS NOT NULL AND rx_time > ?2 AND rx_rssi != 0 AND gateway_id = ?3 ORDER BY "time!" DESC LIMIT 100)
+            UNION ALL SELECT * FROM (SELECT 'S' as plot_type, rx_time as "time!", rx_snr AS "value!" FROM mesh_packets WHERE from_id = ?1 AND rx_time IS NOT NULL AND rx_time > ?2 AND rx_snr != 0 AND gateway_id = ?3 ORDER BY "time!" DESC LIMIT 100)
             UNION ALL SELECT * FROM (SELECT 'C' as plot_type, time as "time!", channel_utilization AS "value!" FROM device_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND channel_utilization > 0 ORDER BY "time!" DESC LIMIT 100)
             UNION ALL SELECT * FROM (SELECT 'A' as plot_type, time as "time!", air_util_tx AS "value!" FROM device_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND air_util_tx > 0 ORDER BY "time!" DESC LIMIT 100)
             UNION ALL SELECT * FROM (SELECT 'V' as plot_type, time as "time!", voltage AS "value!" FROM device_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND voltage > 0 ORDER BY "time!" DESC LIMIT 100)
@@ -666,7 +710,7 @@ async fn create_plots(
             UNION ALL SELECT * FROM (SELECT 'B' as plot_type, time as "time!", barometric_pressure AS "value!" FROM environment_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND barometric_pressure > 0 ORDER BY "time!" DESC LIMIT 100)
             ORDER BY plot_type, "time!" DESC;
         "#,
-        node_id, min_time
+        node_id, min_time, gateway_id
     )
     .fetch_all(&*pool)
     .await

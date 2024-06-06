@@ -1,10 +1,11 @@
-use crate::dto::mesh_packet::MeshPacket as MeshPacketDto;
-use crate::dto::mesh_packet::Payload;
-use crate::dto::NodeSelectResult;
-use crate::dto::PlotData;
-use crate::dto::StatsSelectResult;
-use crate::proto::meshtastic::config::device_config::Role;
-use crate::util::capitalize;
+use crate::{
+    dto::{
+        mesh_packet::{MeshPacket as MeshPacketDto, Payload},
+        GatewayPacketInfo, NodeSelectResult, PlotData, StatsSelectResult,
+    },
+    proto::meshtastic::config::device_config::Role,
+    util::capitalize,
+};
 use askama::Template;
 use chrono::prelude::*;
 use chrono::TimeDelta;
@@ -40,6 +41,8 @@ pub(crate) struct PacketTemplate {
 pub(crate) struct NodeDetailsTemplate {
     pub node: NodeSelectResult,
     pub plots: Vec<PlotData>,
+    pub gateway_packet_info: Vec<GatewayPacketInfo>,
+    pub selected_node: Option<String>,
 }
 
 fn logo() -> String {

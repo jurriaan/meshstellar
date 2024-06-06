@@ -27,6 +27,22 @@
     {%- endif -%}
 {%- endif -%}
 
+{% if let Some(selected_node) = selected_node %}
+<section class="received-by-gateway">
+<h2>Received by</h2>
+{% if gateway_packet_info.len() > 1 %}
+<p><small>Select a gateway to see the RSSI/SNR of received packets from this node.</small></p>
+{% endif %}
+<ul class="gateway-selector">
+    {% for packet_info in gateway_packet_info %}
+    <li class="{% if packet_info.gateway_id|as_ref == selected_node %}selected{% endif %}" hx-get="/node/{{ node.node_id|hex }}/details.html?gateway={{packet_info.gateway_id}}" hx-target="#sidebar-details" hx-swap="innerHTML">
+        <span class="node-name fetch" data-node-id="{{ packet_info.raw_gateway_id() }}">{{ packet_info.gateway_id }}</span> ({{packet_info.num_packets}} packets)
+    </li>
+    {% endfor %}
+</ul>
+</section>
+{%- endif -%}
+
 {% for plot in plots %}
     <h2>{{plot.label}}</h2>
     {{ plot.svg|safe }}
