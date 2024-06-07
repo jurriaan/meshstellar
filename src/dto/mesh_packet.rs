@@ -44,6 +44,7 @@ pub struct MeshPacket {
     pub want_response: bool,
     pub payload: Payload,
     pub payload_data: Vec<u8>,
+    pub created_at: i64,
 }
 
 fn parse_hexadecimal_id(input: &str) -> Option<u32> {
@@ -70,6 +71,7 @@ impl FromRow<'_, SqliteRow> for MeshPacket {
         let payload_data = row
             .try_get::<Vec<u8>, _>("payload_data")
             .unwrap_or_default();
+        let created_at = row.try_get::<i64, _>("created_at").unwrap_or_default();
 
         let (hop_start, num_hops) = if hop_start >= hop_limit && hop_start != 0 {
             (Some(hop_start as u8), Some((hop_start - hop_limit) as u8))
@@ -109,6 +111,7 @@ impl FromRow<'_, SqliteRow> for MeshPacket {
             want_response: want_response != 0,
             payload_data,
             payload: Payload::Unknown,
+            created_at,
         })
     }
 }

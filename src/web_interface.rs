@@ -240,7 +240,8 @@ fn mesh_packet_stream(
                     priority,
                     want_ack,
                     want_response,
-                    payload_data
+                    payload_data,
+                    created_at
                 FROM mesh_packets
                 WHERE id IN (
                     SELECT id FROM mesh_packets
