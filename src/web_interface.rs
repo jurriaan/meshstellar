@@ -191,7 +191,7 @@ fn node_update_stream(
                     properties.insert("id".to_string(), JsonValue::from(format!("{:x}", node.node_id)));
                     properties.insert("display_name".to_string(), JsonValue::from(display_name));
                     properties.insert("long_name".to_string(), JsonValue::from(node.long_name.clone()));
-                    properties.insert("last_rx_time".to_string(), JsonValue::from(node.last_rx_time.unwrap_or_default() as f64 / 1_000_000_000.0));
+                    properties.insert("updated_at".to_string(), JsonValue::from(node.updated_at as f64 / 1_000_000_000.0));
 
                     Some(GeoJson::Feature(Feature {
                         geometry: Some(geometry),
@@ -244,15 +244,15 @@ fn mesh_packet_stream(
                 FROM mesh_packets
                 WHERE id IN (
                     SELECT id FROM mesh_packets
-                    WHERE rx_time > ?1
+                    WHERE id > ?1
                     AND duplicate_of_mesh_packet_id IS NULL
-                    ORDER BY rx_time DESC
+                    ORDER BY id DESC
                     LIMIT 100
                 ) OR id IN (
                     SELECT id FROM mesh_packets
-                    WHERE rx_time > ?1 AND portnum = ?2
+                    WHERE id > ?1 AND portnum = ?2
                     AND duplicate_of_mesh_packet_id IS NULL
-                    ORDER BY rx_time DESC
+                    ORDER BY id DESC
                     LIMIT 100
                 )
                 ORDER BY id DESC
@@ -539,8 +539,8 @@ async fn node_positions_geojson(
                 positions.altitude
             FROM positions
             JOIN mesh_packets ON positions.mesh_packet_id = mesh_packets.id
-            WHERE node_id = ? AND rx_time > ?
-            ORDER BY rx_time DESC
+            WHERE node_id = ? AND created_at > ?
+            ORDER BY created_at DESC
             LIMIT 250
             "#,
         node_id,
@@ -635,7 +635,7 @@ async fn node_details(
     let gateway_packet_info: Vec<GatewayPacketInfo> = sqlx::query_as!(
         GatewayPacketInfo,
         r#"
-            SELECT gateway_id as "gateway_id!", COUNT(*) as num_packets FROM mesh_packets WHERE from_id = ?1 AND rx_time IS NOT NULL AND rx_time > ?2 AND gateway_id IS NOT NULL GROUP BY 1 ORDER BY num_packets DESC LIMIT 50
+            SELECT gateway_id as "gateway_id!", COUNT(*) as num_packets FROM mesh_packets WHERE from_id = ?1 AND created_at > ?2 AND gateway_id IS NOT NULL GROUP BY 1 ORDER BY num_packets DESC LIMIT 50
         "#,
         node_id, min_time_nanos
     )

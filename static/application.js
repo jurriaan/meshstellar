@@ -95,8 +95,8 @@ function centerMap() {
     const features = nodeGeoJSON?.features;
     if (!mapCentered && features?.length > 0 && features[0].geometry && features[0].geometry.coordinates) {
         mapCentered = true;
-        const latestTimestamp = features[0].properties.last_rx_time;
-        const coordinates = features.filter((point) => latestTimestamp - point.properties.last_rx_time < 86400).map((point) => point.geometry.coordinates);
+        const latestTimestamp = features[0].properties.updated_at;
+        const coordinates = features.filter((point) => latestTimestamp - point.properties.updated_at < 86400).map((point) => point.geometry.coordinates);
         const bounds = coordinates.reduce((bounds, coord) => {
             return bounds.extend(coord);
         }, new maplibregl.LngLatBounds(coordinates[0], coordinates[0]));

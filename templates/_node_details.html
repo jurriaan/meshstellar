@@ -13,8 +13,8 @@
     {%- endif -%}
 </h1>
 
-{%- if let (Some(last_rx_time), Some(last_rx_snr), Some(last_rx_rssi)) = (node.last_rx_time, node.last_rx_snr, node.last_rx_rssi) -%}
-<p>Last message received <time datetime="{{ self::format_timestamp(last_rx_time) }}" class="relative">{{ last_rx_time }}</time>
+{%- if let (updated_at, Some(last_rx_snr), Some(last_rx_rssi)) = (node.updated_at, node.last_rx_snr, node.last_rx_rssi) -%}
+<p>Last message received <time datetime="{{ self::format_timestamp(updated_at) }}" class="relative">{{ updated_at }}</time>
             {%- if last_rx_snr != 0.0|as_ref && last_rx_rssi != 0|as_ref ~%}
                 <small>({{"SNR: {:.1}, RSSI: {}"|format(last_rx_snr, last_rx_rssi)}})</small>
             {%- endif -%}
