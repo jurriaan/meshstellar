@@ -157,7 +157,7 @@ async fn fetch_mesh_repeat_and_node_exists(
         PacketStatus,
         r#"
             SELECT
-                COALESCE((SELECT id FROM mesh_packets WHERE unique_id = ? AND unique_id != 0 AND payload_data = ? AND rx_time BETWEEN ? AND ? ORDER BY rx_time ASC LIMIT 1), 0) AS "mesh_repeat_id!",
+                COALESCE((SELECT id FROM mesh_packets WHERE unique_id = ? AND unique_id != 0 AND payload_data = ? AND created_at BETWEEN ? AND ? ORDER BY created_at ASC LIMIT 1), 0) AS "mesh_repeat_id!",
                 EXISTS(SELECT 1 FROM mesh_packets WHERE hash = ? AND unique_id != 0) AS "exact_match!",
                 EXISTS(SELECT 1 FROM nodes WHERE node_id = ?) AS "node_exists!"
         "#,
