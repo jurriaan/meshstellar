@@ -14,7 +14,7 @@
         <dt>Hops</dt>
         <dd>{{num_hops}} / {{hop_start}}</dd>
         {% endif %}
-        <dt>RX time</dt>
+        <dt>Received</dt>
         <dd>
         {{- self::icon("antenna")|safe ~}} <time datetime="{{ self::format_timestamp(packet.rx_time) }}" class="relative">{{ packet.rx_time }}</time>
             {% if packet.rx_rssi != 0 && packet.rx_snr != 0.0 %}
