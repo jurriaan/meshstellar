@@ -32,8 +32,8 @@ async fn ensure_node_exists(txn: &mut SqliteConnection, packet: &MeshPacket) -> 
         let rx_time = packet.rx_time as i64 * 1_000_000_000;
 
         let _result = sqlx::query!(
-            "INSERT INTO nodes (node_id, user_id, last_rx_time, last_rx_snr, last_rx_rssi, last_hop_start, last_hop_limit, created_at)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+            "INSERT INTO nodes (node_id, user_id, last_rx_time, last_rx_snr, last_rx_rssi, last_hop_start, last_hop_limit, created_at, updated_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8)
             ON CONFLICT(node_id) DO NOTHING",
             packet.from,
             user_id,
@@ -82,16 +82,18 @@ async fn process_mesh_packet(
             ))))
         } else {
             let rx_time_nanos = packet.rx_time as i64 * 1_000_000_000;
+            let now = Utc::now().timestamp_nanos_opt().unwrap();
 
             let _ = sqlx::query!(
                 "UPDATE nodes
-                 SET last_rx_time = ?, last_rx_snr = ?, last_rx_rssi = ?, last_hop_start = ?, last_hop_limit = ?
+                 SET last_rx_time = ?, last_rx_snr = ?, last_rx_rssi = ?, last_hop_start = ?, last_hop_limit = ?, updated_at = ?
                  WHERE node_id = ? AND (last_rx_time IS NULL OR last_rx_time < ?)",
                 rx_time_nanos,  // New last_rx_time value
                 packet.rx_snr,  // New last_rx_snr value
                 packet.rx_rssi, // New last_rx_rssi value
                 packet.hop_start, // New last_hop_start value
                 packet.hop_limit, // New last_hop_limit value
+                now,
                 packet.from,    // node_id condition
                 rx_time_nanos   // Comparison value for last_rx_time
             )

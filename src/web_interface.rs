@@ -100,7 +100,7 @@ fn stats_update_stream(
 fn node_update_stream(
     pool: State<SqlitePool>,
 ) -> Pin<Box<dyn Stream<Item = Result<Event, Infallible>> + Send>> {
-    let mut last_rx_time: i64 = 0;
+    let mut last_updated_at: i64 = 0;
 
     Box::pin(stream! {
         loop {
@@ -157,13 +157,14 @@ fn node_update_stream(
                     latitude,
                     longitude,
                     altitude,
-                    COALESCE(neighbor_json, '[]') AS neighbor_json
+                    COALESCE(neighbor_json, '[]') AS neighbor_json,
+                    updated_at
                 FROM nodes
                 LEFT JOIN neighbors_per_node ON neighbors_per_node.node_id = nodes.node_id
-                WHERE last_rx_time > ?
-                ORDER BY last_rx_time ASC
+                WHERE updated_at > ?
+                ORDER BY updated_at ASC
                 "#,
-                last_rx_time
+                last_updated_at
             )
             .fetch_all(&*pool)
             .await;
@@ -175,7 +176,7 @@ fn node_update_stream(
 
             let nodes = nodes.unwrap_or_default();
 
-            last_rx_time = nodes.last().and_then(|n| n.last_rx_time).unwrap_or(last_rx_time);
+            last_updated_at = nodes.last().map(|n| n.updated_at).unwrap_or(last_updated_at);
 
             for node in nodes.into_iter() {
                 let geom = if let (Some(longitude), Some(latitude), Some(altitude)) = (node.longitude, node.latitude, node.altitude) {
@@ -216,7 +217,7 @@ fn node_update_stream(
 fn mesh_packet_stream(
     pool: State<SqlitePool>,
 ) -> Pin<Box<dyn Stream<Item = Result<Event, Infallible>> + Send>> {
-    let mut last_rx_time: i64 = 0;
+    let mut last_id: i64 = 0;
 
     Box::pin(stream! {
         // Delay by half a second to allow nodes to load first
@@ -254,10 +255,10 @@ fn mesh_packet_stream(
                     ORDER BY rx_time DESC
                     LIMIT 100
                 )
-                ORDER BY rx_time DESC
+                ORDER BY id DESC
                 "#,
             )
-            .bind(last_rx_time)
+            .bind(last_id)
             .bind(Into::<i32>::into(PortNum::TextMessageApp))
             .fetch_all(&*pool)
                 .await;
@@ -383,7 +384,7 @@ fn mesh_packet_stream(
             let power_metrics: OnceCell<HashMap<i64, PowerMetricsSelectResult>> = OnceCell::new();
             let neighbors: OnceCell<HashMap<i64, Vec<NeighborSelectResult>>> = OnceCell::new();
 
-            last_rx_time = packets.first().map(|p| p.rx_time).unwrap_or(last_rx_time);
+            last_id = packets.first().map(|p| p.id).unwrap_or(last_id);
 
             for mut packet in packets.into_iter().rev() {
                 let mut event_type = "mesh-packet";
@@ -596,10 +597,10 @@ async fn node_details(
             latitude,
             longitude,
             altitude,
-            '[]' AS neighbor_json
+            '[]' AS neighbor_json,
+            updated_at
         FROM nodes
         WHERE node_id = ?
-        ORDER BY last_rx_time ASC
         "#,
         node_id
     )

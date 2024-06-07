@@ -7,9 +7,9 @@
                 <em>{{ node.user_id }}</em>
             {%- endif -%}
         </span>
-        {%- if let (Some(last_rx_time), Some(last_rx_snr), Some(last_rx_rssi), Some(last_hop_start), Some(last_hop_limit)) = (node.last_rx_time, node.last_rx_snr, node.last_rx_rssi, node.last_hop_start, node.last_hop_limit) -%}
+        {%- if let (updated_at, Some(last_rx_snr), Some(last_rx_rssi), Some(last_hop_start), Some(last_hop_limit)) = (node.updated_at, node.last_rx_snr, node.last_rx_rssi, node.last_hop_start, node.last_hop_limit) -%}
             <br />
-            {{- self::icon("antenna")|safe ~}} <time datetime="{{ self::format_timestamp(last_rx_time) }}" class="relative">{{ last_rx_time }}</time>
+            {{- self::icon("antenna")|safe ~}} <time datetime="{{ self::format_timestamp(updated_at) }}" class="relative">{{ updated_at }}</time>
 
             {%- if last_rx_snr != 0.0|as_ref && last_rx_rssi != 0|as_ref ~%}
                 {%- if last_hop_start > 0|as_ref %}
