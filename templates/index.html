@@ -33,7 +33,7 @@
 
             <button class="about" _="on click showModal() on #about">About Meshstellar</button>
           </div>
-          <ol class="node-list" sse-swap="update-node" hx-swap="afterbegin" _="on htmx:afterSwap debounced at 100ms updateNodes()">
+          <ol class="node-list" sse-swap="update-node" hx-swap="afterbegin">
           </ol>
         </section>
 
@@ -43,7 +43,6 @@
           <ol class="packet-list" sse-swap="mesh-packet,text-message" hx-swap="afterbegin" _="
             on htmx:afterSwap debounced at 100ms
               remove <li:nth-child(n+100) /> from me
-              updateNodes()
           ">
           </ol>
         </section>
@@ -54,7 +53,6 @@
           <ol class="packet-list" sse-swap="text-message" hx-swap="afterbegin" _="
             on htmx:afterSwap debounced at 100ms
               remove <li:nth-child(n+100) /> from me
-              updateNodes()
           ">
           </ol>
         </section>
@@ -71,7 +69,6 @@
       on htmx:afterSwap debounced at 50ms
         hide #sidebar-main
         show #sidebar-details
-        updateNodes()
     ">
     </div>
   </aside>
