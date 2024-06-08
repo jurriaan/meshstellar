@@ -188,6 +188,11 @@ dt {
 dd {
     grid-column: 2;
     max-width: 300px;
+    margin-left: 1.2em;
+}
+
+.maplibregl-popup-content dt {
+    min-width: 80px;
 }
 
 #resizer {

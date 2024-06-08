@@ -37,6 +37,12 @@ pub(crate) struct PacketTemplate {
 }
 
 #[derive(Template)]
+#[template(path = "_position_details.html")]
+pub(crate) struct PositionDetailsTemplate {
+    pub packet: MeshPacketDto,
+}
+
+#[derive(Template)]
 #[template(path = "_node_details.html")]
 pub(crate) struct NodeDetailsTemplate {
     pub node: NodeSelectResult,

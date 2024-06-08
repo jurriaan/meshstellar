@@ -30,7 +30,7 @@ function getRelativeTimeString(date, lang = navigator.language) {
 }
 
 function applyRelativeDateTime(node) {
-    for (const relativeTime of node.querySelectorAll('time.relative[datetime]')) {
+    for (const relativeTime of htmx.findAll(node, 'time.relative[datetime]')) {
         const date = Date.parse(relativeTime.attributes.datetime.value);
         const timeMs = typeof date === "number" ? date : date.getTime();
 
@@ -49,32 +49,34 @@ const emptyFeatureCollection = { type: 'FeatureCollection', features: [] };
 function selectNode(node) {
     const nodeEl = node ? htmx.find('#' + node?.id) : null;
     const maxAgeInMinutes = getMaxAgeInMinutes();
-    selectedNode?.classList?.remove('selected')
 
-    map.getSource('positions').setData(emptyFeatureCollection);
+    if (selectedNode != nodeEl) {
+        selectedNode?.classList?.remove('selected')
+        map.getSource('positions').setData(emptyFeatureCollection);
+        map.getSource('positions-line').setData(emptyFeatureCollection);
+        if (!node?.id) {
+            selectedNode = null;
+        } else {
+            selectedNode = nodeEl;
+            let geojson = htmx.find(nodeEl, '[data-geojson]')?.dataset?.geojson;
+            if (geojson) {
+                geojson = JSON.parse(geojson);
 
-    if (selectedNode == nodeEl || !node?.id) {
-        selectedNode = null;
-    } else {
-        selectedNode = nodeEl;
-        let geojson = htmx.find(nodeEl, '[data-geojson]')?.dataset?.geojson;
-        if (geojson) {
-            geojson = JSON.parse(geojson);
-
-            if (geojson.geometry && geojson.geometry.coordinates.length > 0) {
-                map.flyTo({
-                    center: geojson.geometry.coordinates,
-                    zoom: 12
-                });
+                if (geojson.geometry && geojson.geometry.coordinates.length > 0) {
+                    map.flyTo({
+                        center: geojson.geometry.coordinates,
+                        zoom: 12
+                    });
+                }
             }
-        }
-        nodeEl?.classList?.add('selected')
-        let url = `/node/${node.dataset.nodeId}/positions.geojson`;
+            nodeEl?.classList?.add('selected')
+            let url = `/node/${node.dataset.nodeId}/positions.geojson`;
 
-        if (maxAgeInMinutes != null) {
-            url += '?max_age=' + maxAgeInMinutes;
+            if (maxAgeInMinutes != null) {
+                url += '?max_age=' + maxAgeInMinutes;
+            }
+            map.getSource('positions').setData(url);
         }
-        map.getSource('positions').setData(url);
     }
     _updateNodeGeoJSON();
 }
@@ -336,11 +338,74 @@ function loadMap() {
             if (feature.properties && feature.properties.id) {
                 const nodeEl = htmx.find('#node-list-node-' + feature.properties.id + ' div');
 
-                if(nodeEl) {
+                if (nodeEl) {
                     nodeEl.click();
                 }
             }
         }
+    });
+
+    // Automatically create a line from point data
+    map.on("sourcedata", async (e) => {
+        if (e.sourceId == 'positions' && e.sourceDataType == 'metadata' && typeof e.source.data == 'string') {
+            console.log(e);
+            console.log(map.isSourceLoaded('positions'));
+            const positionsSource = map.getSource('positions');
+            const positionsLineSource = map.getSource('positions-line');
+            if (positionsSource) {
+                const data = await positionsSource.getData();
+                if (data.features) {
+                    const coordinates = data.features.map((point) => {
+                        return point.geometry.coordinates
+                    });
+
+                    const lineString = {
+                        'type': 'Feature',
+                        'properties': {},
+                        'geometry': {
+                            'type': 'LineString',
+                            'coordinates': coordinates
+                        }
+                    };
+
+                    positionsLineSource.setData(lineString);
+                }
+            }
+        }
+    });
+
+    // Create a popup, but don't add it to the map yet.
+    const popup = new maplibregl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        maxWidth: '300px'
+    });
+
+    const shopPopup = (e) => {
+        // Change the cursor style as a UI indicator.
+        map.getCanvas().style.cursor = 'pointer';
+
+        const coordinates = e.features[0].geometry.coordinates.slice();
+        const description = e.features[0].properties.desc;
+
+        // Ensure that if the map is zoomed out such that multiple
+        // copies of the feature are visible, the popup appears
+        // over the copy being pointed to.
+        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+            coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+        }
+
+        // Populate the popup and set its coordinates
+        // based on the feature found.
+        popup.setLngLat(coordinates).setHTML(processHtml(description)).addTo(map);
+    };
+
+    map.on('mouseenter', 'positions-circle', shopPopup);
+    map.on('click', 'positions-circle', shopPopup);
+
+    map.on('mouseleave', 'positions-circle', () => {
+        map.getCanvas().style.cursor = '';
+        popup.remove();
     });
 
     window.map = map;
@@ -358,7 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
         transformResponse: function (text, xhr, elt) {
             const fragment = internalApi.makeFragment(text);
 
-            applyRelativeDateTime(fragment);
+            processFragment(fragment);
 
             const swapAttr = elt.getAttribute('hx-swap');
             if (swapAttr == 'afterbegin' || swapAttr == 'beforeend') {
@@ -398,6 +463,37 @@ document.addEventListener('DOMContentLoaded', () => {
     resizer.addEventListener("mousedown", initResize, false);
     resizer.addEventListener("touchstart", initResize, false);
 })
+
+function processHtml(htmlString) {
+    const temp = document.createElement('template');
+    temp.innerHTML = htmlString;
+    const fragment = temp.content;
+
+    processFragment(fragment);
+
+    const div = document.createElement("div");
+    div.appendChild(fragment);
+
+    return div.innerHTML;
+}
+
+function processFragment(fragment) {
+    applyRelativeDateTime(fragment);
+    applyNodeNames(fragment);
+}
+
+function applyNodeNames(node) {
+    const nodeList = htmx.find('section#nodes ol.node-list')
+    const nodeNamesToFetch = htmx.findAll(node, '.node-name.fetch');
+    nodeNamesToFetch.forEach((nameToFetch) => {
+        const selector = `#node-list-node-${nameToFetch.dataset.nodeId} .node-name`
+        console.log(selector);
+        const nodeNameNode = htmx.find(nodeList, selector);
+        console.log(nodeNameNode);
+
+        nameToFetch.innerHTML = nodeNameNode.innerHTML;
+    });
+}
 
 
 // Unified event handler to remove event listeners

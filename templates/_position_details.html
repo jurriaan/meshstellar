@@ -1,0 +1,46 @@
+<dl>
+    {% if let Some(gateway_id) = packet.gateway_id -%}
+        <dt>Gateway</dt>
+        <dd><span class="node-name fetch" data-node-id="{{ gateway_id|hex }}">!{{ gateway_id|hex }}</span></dd>
+    {%- endif %}
+    {% if packet.to_id > 0 && packet.to_id < 0xffffffff %} <dt>To</dt>
+        <dd><span class="node-name fetch" data-node-id="{{ packet.to_id|hex }}">!{{ packet.to_id|hex }}</span></dd>
+    {% endif %}
+    {% if let (Some(num_hops), Some(hop_start)) = (packet.num_hops, packet.hop_start) %}
+        <dt>Hops</dt>
+        <dd>{{num_hops}} / {{hop_start}}</dd>
+    {% endif %}
+    <dt>Received</dt>
+    <dd>
+        {% if packet.rx_time > 0 %}
+        {{- self::icon("antenna")|safe ~}} <time datetime="{{ self::format_timestamp(packet.rx_time) }}"
+            class="relative">{{ packet.rx_time }}</time><br>
+        {% if packet.rx_rssi != 0 && packet.rx_snr != 0.0 %}
+        <small>({{"SNR: {:.1}, RSSI: {}"|format(packet.rx_snr, packet.rx_rssi)}})</small>
+        {% endif %}
+        {% else %}
+        <time datetime="{{ self::format_timestamp(packet.created_at) }}" class="relative">{{ packet.created_at
+            }}</time>
+        {% endif %}
+    </dd>
+    {% if packet.want_ack || packet.want_response %}
+    <dt>Flags</dt>
+    <dd>{% if packet.want_ack %}want ack{% endif %} {% if packet.want_response %}want response{% endif %}</dd>
+    {% endif %}
+    {% if let Payload::Position(position) = packet.payload %}
+    <dt>Location</dt>
+    <dd>{{self::format_mesh_gps(position.latitude, position.longitude)}}</dd>
+    {% if position.altitude != 0 %}
+    <dt>Altitude</dt>
+    <dd>{{position.altitude}} m</dd>
+    {% endif %}
+    {% if position.sats_in_view != 0 %}
+    <dt>Sats in view</dt>
+    <dd>{{position.sats_in_view}}</dd>
+    {% endif %}
+    {% if position.precision_bits != 0 %}
+    <dt>Precision bits</dt>
+    <dd>{{position.precision_bits}}</dd>
+    {% endif %}
+    {% endif %}
+</dl>

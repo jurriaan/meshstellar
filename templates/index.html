@@ -1,13 +1,5 @@
 {% extends "layout.html" %}
 {% block body %}
-<script type="text/hyperscript">
-def updateNodes()
-  tell <.node-name.fetch/> in <aside#sidebar />
-    set selector to `#node-list-node-${you@data-node-id} .node-name`
-    get the first <${selector}/> in body then
-    if it exists set your innerHTML to its innerHTML
-end
-</script>
   <div id="map"></div>
   <aside id="sidebar" hidden>
     <button class="show" _="on click send showSidebar to body">{{- self::icon("menu")|safe ~}}</button>

@@ -1,6 +1,6 @@
 use sqlx::FromRow;
 
-#[derive(Clone, Debug, FromRow)]
+#[derive(Clone, Debug, FromRow, Copy)]
 pub struct PositionSelectResult {
     pub mesh_packet_id: i64,
     pub latitude: f64,

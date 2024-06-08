@@ -35,12 +35,12 @@ use futures::{
     stream::{select_all, Stream},
     FutureExt,
 };
-use geojson::{Feature, GeoJson, Geometry, JsonObject, JsonValue};
+use geojson::{Feature, FeatureCollection, GeoJson, Geometry, JsonObject, JsonValue};
 use itertools::Itertools;
 use prost::Message;
 use serde::Deserialize;
-use serde_json::json;
-use sqlx::SqlitePool;
+use serde_json::{json, Map};
+use sqlx::{FromRow, SqlitePool};
 use std::{collections::HashMap, sync::OnceLock};
 use std::{convert::Infallible, pin::Pin, time::Duration};
 use tokio::net::TcpListener;
@@ -401,7 +401,7 @@ fn mesh_packet_stream(
                     }
                     Ok(PortNum::PositionApp) => {
                         if let Some(position) = positions.get_or_init(compute_positions).await.get(&packet.id) {
-                            packet.payload = Payload::Position(position.clone())
+                            packet.payload = Payload::Position(*position)
                         }
                     }
                     Ok(PortNum::TelemetryApp) => {
@@ -490,24 +490,38 @@ async fn sse_handler(
     )
 }
 
-struct NodePosition {
-    latitude: f64,
-    longitude: f64,
-    altitude: i64,
-}
+impl FromIterator<MeshPacketDto> for FeatureCollection {
+    fn from_iter<T: IntoIterator<Item = MeshPacketDto>>(iter: T) -> Self {
+        let features =
+            iter.into_iter()
+                .filter_map(|packet| {
+                    if let Payload::Position(pos) = packet.payload {
+                        let coordinates = vec![pos.longitude, pos.latitude, pos.altitude as f64];
+                        let geometry: Geometry = geojson::Value::Point(coordinates).into();
+                        let id = geojson::feature::Id::Number(packet.id.into());
+                        let template = PositionDetailsTemplate { packet };
 
-impl FromIterator<NodePosition> for Feature {
-    fn from_iter<T: IntoIterator<Item = NodePosition>>(iter: T) -> Self {
-        let line_string = iter
-            .into_iter()
-            .map(|pos| vec![pos.longitude, pos.latitude, pos.altitude as f64])
-            .collect_vec();
+                        let properties = template.render().ok().map(|result| {
+                            Map::from_iter(vec![("desc".to_string(), result.into())])
+                        });
 
-        let geometry: Geometry = geojson::Value::LineString(line_string).into();
+                        Some(Feature {
+                            id: Some(id),
+                            geometry: Some(geometry),
+                            properties,
+                            foreign_members: None,
+                            bbox: None,
+                        })
+                    } else {
+                        None
+                    }
+                })
+                .collect_vec();
 
-        Feature {
-            geometry: Some(geometry),
-            ..Default::default()
+        FeatureCollection {
+            features,
+            foreign_members: None,
+            bbox: None,
         }
     }
 }
@@ -531,27 +545,55 @@ async fn node_positions_geojson(
         0
     };
 
-    let query_res: Vec<NodePosition> = sqlx::query_as!(
-        NodePosition,
+    let query_res: Vec<MeshPacketDto> = sqlx::query(
         r#"
             SELECT
+                mesh_packets.id,
+                mesh_packets.from_id,
+                mesh_packets.to_id,
+                mesh_packets.gateway_id,
+                mesh_packets.portnum,
+                mesh_packets.rx_time,
+                mesh_packets.hop_start,
+                mesh_packets.hop_limit,
+                mesh_packets.rx_snr,
+                mesh_packets.rx_rssi,
+                mesh_packets.priority,
+                mesh_packets.want_ack,
+                mesh_packets.want_response,
+                mesh_packets.payload_data,
+                positions.mesh_packet_id,
                 positions.latitude,
                 positions.longitude,
-                positions.altitude
+                positions.altitude,
+                positions.sats_in_view,
+                positions.precision_bits
             FROM positions
             JOIN mesh_packets ON positions.mesh_packet_id = mesh_packets.id
             WHERE node_id = ? AND created_at > ?
             ORDER BY created_at DESC
             LIMIT 250
             "#,
-        node_id,
-        max_age_time_nanos
     )
+    .bind(node_id)
+    .bind(max_age_time_nanos)
     .fetch_all(&*pool)
     .await
-    .map_err(DatabaseError)?;
+    .map_err(DatabaseError)?
+    .into_iter()
+    .filter_map(|row| {
+        MeshPacketDto::from_row(&row)
+            .and_then(|mut packet| {
+                PositionSelectResult::from_row(&row).map(|position| {
+                    packet.payload = Payload::Position(position);
+                    packet
+                })
+            })
+            .ok()
+    })
+    .collect_vec();
 
-    let res = GeoJson::Feature(query_res.into_iter().collect()).to_string();
+    let res = GeoJson::FeatureCollection(query_res.into_iter().collect()).to_string();
 
     Ok(([(header::CONTENT_TYPE, "application/geo+json")], res))
 }
@@ -755,6 +797,10 @@ async fn style_json(web_config: State<WebConfig>) -> impl IntoResponse {
             "type": "geojson",
             "data": { "type": "FeatureCollection", "features": [] },
         },
+        "positions-line": {
+            "type": "geojson",
+            "data": { "type": "FeatureCollection", "features": [] },
+        },
     });
 
     let mut layers: JsonValue = if let Some(pmtiles_url) = &web_config.pmtiles_url {
@@ -865,10 +911,21 @@ async fn style_json(web_config: State<WebConfig>) -> impl IntoResponse {
         json!({
                 "id": "positions-line",
                 "type": "line",
-                "source": "positions",
+                "source": "positions-line",
                 "paint": {
                     "line-color": "red",
                 }
+        }),
+        json!({
+                "id": "positions-circle",
+                "type": "circle",
+                "source": "positions",
+                "paint": {
+                    "circle-radius": 4,
+                    "circle-color": "#FF0000",
+                    "circle-stroke-width": 5,
+                    "circle-stroke-opacity": 0,
+                },
         }),
     ];
 
