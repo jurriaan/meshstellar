@@ -44,7 +44,7 @@ body {
 }
 
 #sidebar.collapsed>button.show {
-    display: block;
+    display:/pa block;
     left: 0;
     top: 0;
     pointer-events: all;
@@ -130,8 +130,11 @@ ol {
 .node-list li,
 .packet-list li {
     padding: .5em 1em;
-    cursor: pointer;
     border-bottom: 1px solid white;
+}
+
+.node-list li {
+    cursor: pointer;
 }
 
 .tab-content-container section {
