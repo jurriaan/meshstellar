@@ -348,8 +348,6 @@ function loadMap() {
     // Automatically create a line from point data
     map.on("sourcedata", async (e) => {
         if (e.sourceId == 'positions' && e.sourceDataType == 'metadata' && typeof e.source.data == 'string') {
-            console.log(e);
-            console.log(map.isSourceLoaded('positions'));
             const positionsSource = map.getSource('positions');
             const positionsLineSource = map.getSource('positions-line');
             if (positionsSource) {
@@ -487,11 +485,11 @@ function applyNodeNames(node) {
     const nodeNamesToFetch = htmx.findAll(node, '.node-name.fetch');
     nodeNamesToFetch.forEach((nameToFetch) => {
         const selector = `#node-list-node-${nameToFetch.dataset.nodeId} .node-name`
-        console.log(selector);
         const nodeNameNode = htmx.find(nodeList, selector);
-        console.log(nodeNameNode);
 
-        nameToFetch.innerHTML = nodeNameNode.innerHTML;
+        if(nodeNameNode) {
+            nameToFetch.innerHTML = nodeNameNode.innerHTML;
+        }
     });
 }
 

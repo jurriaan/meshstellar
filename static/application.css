@@ -44,7 +44,7 @@ body {
 }
 
 #sidebar.collapsed>button.show {
-    display:/pa block;
+    display: block;
     left: 0;
     top: 0;
     pointer-events: all;
