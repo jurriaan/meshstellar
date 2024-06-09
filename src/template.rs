@@ -134,6 +134,7 @@ fn format_duration_sec(duration_sec: &i64) -> String {
 }
 
 mod filters {
+    use num_traits::Signed;
     use std::fmt::LowerHex;
 
     pub fn hex<T>(num: &T) -> ::askama::Result<String>
@@ -142,5 +143,13 @@ mod filters {
     {
         let s = format!("{:x}", num);
         Ok(s)
+    }
+
+    /// Absolute value
+    pub fn abs_ref<T>(number: &T) -> ::askama::Result<T>
+    where
+        T: Signed,
+    {
+        Ok(number.abs())
     }
 }

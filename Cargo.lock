@@ -1197,6 +1197,7 @@ dependencies = [
  "itertools 0.13.0",
  "libsqlite3-sys",
  "mime_guess",
+ "num-traits",
  "plotters",
  "prost",
  "prost-build",

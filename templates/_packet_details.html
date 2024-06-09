@@ -21,10 +21,14 @@
         <small>({{"SNR: {:.1}, RSSI: {}"|format(packet.rx_snr, packet.rx_rssi)}})</small>
         {% endif %}
         {% else %}
-        <time datetime="{{ self::format_timestamp(packet.created_at) }}" class="relative">{{ packet.created_at
-            }}</time>
+        <time datetime="{{ self::format_timestamp(packet.created_at) }}" class="relative">{{ packet.created_at }}</time>
         {% endif %}
     </dd>
+    {% if packet.rx_time > 0 && (packet.rx_time - packet.created_at)|abs_ref / 1000000000 > 300 %}
+    <dd>
+        <time datetime="{{ self::format_timestamp(packet.created_at) }}" class="relative">{{ packet.created_at }}</time> <small>(server time)</small>
+    </dd>
+    {% endif %}
     {% if packet.want_ack || packet.want_response %}
     <dt>Flags</dt>
     <dd>{% if packet.want_ack %}want ack{% endif %} {% if packet.want_response %}want response{% endif %}</dd>

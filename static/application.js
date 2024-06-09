@@ -36,6 +36,7 @@ function applyRelativeDateTime(node) {
 
         relativeTime.dataset.time = (timeMs / 1000).toFixed(0);
         relativeTime.innerText = getRelativeTimeString(date);
+        relativeTime.setAttribute('title', relativeTime.attributes.datetime.value);
     }
 }
 
@@ -487,7 +488,7 @@ function applyNodeNames(node) {
         const selector = `#node-list-node-${nameToFetch.dataset.nodeId} .node-name`
         const nodeNameNode = htmx.find(nodeList, selector);
 
-        if(nodeNameNode) {
+        if (nodeNameNode) {
             nameToFetch.innerHTML = nodeNameNode.innerHTML;
         }
     });
