@@ -52,6 +52,7 @@ use tracing::{error, info};
 struct WebConfig {
     pmtiles_url: Option<String>,
     map_glyphs_url: String,
+    hide_private_messages: bool,
 }
 
 // Define your application shared state
@@ -64,6 +65,8 @@ struct AppState {
 async fn index() -> impl IntoResponse {
     into_response(&IndexTemplate {})
 }
+
+const NODENUM_BROADCAST: u32 = 0xffffffff;
 
 fn stats_update_stream(
     pool: State<SqlitePool>,
@@ -216,6 +219,7 @@ fn node_update_stream(
 
 fn mesh_packet_stream(
     pool: State<SqlitePool>,
+    hide_private_messages: bool,
 ) -> Pin<Box<dyn Stream<Item = Result<Event, Infallible>> + Send>> {
     let mut last_id: i64 = 0;
 
@@ -389,8 +393,11 @@ fn mesh_packet_stream(
 
             for mut packet in packets.into_iter().rev() {
                 let mut event_type = "mesh-packet";
+                let mut hide_packet = false;
+
                 match PortNum::try_from(packet.portnum) {
                     Ok(PortNum::TextMessageApp) => {
+                        hide_packet = hide_private_messages && packet.to_id != NODENUM_BROADCAST;
                         packet.payload = Payload::TextMessage(String::from_utf8(packet.payload_data.clone()).unwrap_or_default());
                         event_type = "text-message";
                     }
@@ -459,10 +466,12 @@ fn mesh_packet_stream(
                     }
                     _ => {}
                 }
-                let template = PacketTemplate { packet };
+                if !hide_packet {
+                    let template = PacketTemplate { packet };
 
-                if let Ok(data) = template.render() {
-                    yield Ok(Event::default().event(event_type).data(data))
+                    if let Ok(data) = template.render() {
+                        yield Ok(Event::default().event(event_type).data(data))
+                    }
                 }
             }
 
@@ -473,11 +482,12 @@ fn mesh_packet_stream(
 
 async fn sse_handler(
     pool: State<SqlitePool>,
+    web_config: State<WebConfig>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let update_stream = select_all(
         vec![
             node_update_stream(pool.clone()),
-            mesh_packet_stream(pool.clone()),
+            mesh_packet_stream(pool.clone(), web_config.hide_private_messages),
             stats_update_stream(pool),
         ]
         .into_iter(),
@@ -950,6 +960,9 @@ pub async fn start_server(pool: SqlitePool, http_addr: String) -> anyhow::Result
         map_glyphs_url: get_config()
             .get_string("map_glyphs_url")
             .expect("Configuration error: map_glyphs_url missing"),
+        hide_private_messages: get_config()
+            .get_bool("hide_private_messages")
+            .unwrap_or(false),
     };
     info!("Starting web server @ {}", http_addr);
 

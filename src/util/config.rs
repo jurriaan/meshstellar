@@ -74,7 +74,8 @@ fn build_config() -> Result<Config> {
             "map_glyphs_url",
             "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf",
         )?
-        .set_default("open_browser", true)?;
+        .set_default("open_browser", true)?
+        .set_default("hide_private_messages", false)?;
 
     Ok(if let Some(config_file) =
         optional_config_file().and_then(|path: PathBuf| path.to_str().map(|s| s.to_owned()))

@@ -10,5 +10,6 @@ mqtt_topic = "meshtastic/#"
 database_url = "sqlite://meshstellar.db?mode=rwc"
 map_glyphs_url = "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf"
 open_browser = true
+hide_private_messages = false
 # if hosting pmtiles:
 # meshstellar_pmtiles_url = ""
