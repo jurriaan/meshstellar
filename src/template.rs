@@ -134,8 +134,9 @@ fn format_duration_sec(duration_sec: &i64) -> String {
 }
 
 mod filters {
-    use num_traits::Signed;
-    use std::fmt::LowerHex;
+    use askama::Error::Fmt;
+    use num_traits::{NumCast, Signed};
+    use std::fmt::{self, LowerHex};
 
     pub fn hex<T>(num: &T) -> ::askama::Result<String>
     where
@@ -151,5 +152,12 @@ mod filters {
         T: Signed,
     {
         Ok(number.abs())
+    }
+
+    pub fn into_f64_ref<T>(number: &T) -> ::askama::Result<f64>
+    where
+        T: NumCast,
+    {
+        number.to_f64().ok_or(Fmt(fmt::Error))
     }
 }

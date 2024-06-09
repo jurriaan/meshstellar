@@ -10,4 +10,5 @@ pub struct PositionSelectResult {
     pub precision_bits: i64,
     pub ground_speed: i64,
     pub seq_number: i64,
+    pub ground_track: i64,
 }
