@@ -63,6 +63,10 @@
     <dd><span class="node-name fetch" data-node-id="{{ locked_to|hex }}">!{{ locked_to|hex }}</span></dd>
     {% endif %}
     {% when Payload::Position with (position) %}
+    {% if position.seq_number != 0 %}
+    <dt>Seq #</dt>
+    <dd>{{position.seq_number}}</dd>
+    {% endif %}
     <dt>Location</dt>
     <dd>{{self::format_mesh_gps(position.latitude, position.longitude)}}</dd>
     {% if position.altitude != 0 %}

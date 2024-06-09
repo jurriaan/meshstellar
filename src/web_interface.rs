@@ -298,7 +298,7 @@ fn mesh_packet_stream(
             let compute_positions = || {
                 async {
                 let query = format!(
-                    r#"SELECT mesh_packet_id, latitude, longitude, altitude, sats_in_view, precision_bits, ground_speed FROM positions WHERE mesh_packet_id IN ({})"#,
+                    r#"SELECT mesh_packet_id, latitude, longitude, altitude, sats_in_view, precision_bits, ground_speed, seq_number FROM positions WHERE mesh_packet_id IN ({})"#,
                      packet_ids_string
                 );
                 sqlx::query_as::<_, PositionSelectResult>(&query)
@@ -579,7 +579,8 @@ async fn node_positions_geojson(
                 positions.altitude,
                 positions.sats_in_view,
                 positions.precision_bits,
-                positions.ground_speed
+                positions.ground_speed,
+                positions.seq_number
             FROM positions
             JOIN mesh_packets ON positions.mesh_packet_id = mesh_packets.id
             WHERE node_id = ? AND created_at > ?

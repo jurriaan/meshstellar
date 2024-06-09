@@ -8,5 +8,6 @@ pub struct PositionSelectResult {
     pub altitude: i64,
     pub sats_in_view: i64,
     pub precision_bits: i64,
-    pub ground_speed: i64
+    pub ground_speed: i64,
+    pub seq_number: i64,
 }
