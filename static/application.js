@@ -29,14 +29,24 @@ function getRelativeTimeString(date, lang = navigator.language) {
     return rtf.format(Math.floor(deltaSeconds / divisor), units[unitIndex]);
 }
 
-function applyRelativeDateTime(node) {
-    for (const relativeTime of htmx.findAll(node, 'time.relative[datetime]')) {
-        const date = Date.parse(relativeTime.attributes.datetime.value);
+function applyRelativeOrAbsoluteDateTime(node) {
+    for (const timeEl of htmx.findAll(node, 'time.relative[datetime], time.absolute[datetime]')) {
+        const rawDateTime = timeEl.attributes.datetime.value
+        const date = Date.parse(rawDateTime);
         const timeMs = typeof date === "number" ? date : date.getTime();
+        const dateObject = new Date(timeMs);
+        const localeString = dateObject.toLocaleString(navigator.language);
 
-        relativeTime.dataset.time = (timeMs / 1000).toFixed(0);
-        relativeTime.innerText = getRelativeTimeString(date);
-        relativeTime.setAttribute('title', relativeTime.attributes.datetime.value);
+        timeEl.dataset.time = (timeMs / 1000).toFixed(0);
+        timeEl.setAttribute('title', localeString);
+
+        if (timeEl.classList.contains('relative')) {
+            timeEl.innerText = getRelativeTimeString(date);
+        }
+
+        if (timeEl.classList.contains('absolute')) {
+            timeEl.innerText = localeString;
+        }
     }
 }
 
@@ -254,7 +264,7 @@ function animate() {
 
 function _refreshOnlineState() {
     const sidebar = htmx.find('#sidebar');
-    applyRelativeDateTime(sidebar);
+    applyRelativeOrAbsoluteDateTime(sidebar);
     const nodeHeader = htmx.find('h1#node-header');
 
     const nodes = htmx.findAll('.node-list li');
@@ -477,7 +487,7 @@ function processHtml(htmlString) {
 }
 
 function processFragment(fragment) {
-    applyRelativeDateTime(fragment);
+    applyRelativeOrAbsoluteDateTime(fragment);
     applyNodeNames(fragment);
 }
 

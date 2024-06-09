@@ -572,6 +572,7 @@ async fn node_positions_geojson(
                 mesh_packets.want_ack,
                 mesh_packets.want_response,
                 mesh_packets.payload_data,
+                mesh_packets.created_at,
                 positions.mesh_packet_id,
                 positions.latitude,
                 positions.longitude,
