@@ -1,5 +1,6 @@
 use sqlx::FromRow;
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, FromRow)]
 pub struct NodeSelectResult {
     pub node_id: i64,
