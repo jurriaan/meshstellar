@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - aarch64
+      - test-branch
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -89,26 +89,21 @@ jobs:
           registry: ${{ env.IMAGE_REGISTRY }}
       - name: Upgrade Buildah
         run: |
-          git clone -b v1.35.4 --depth=1 https://github.com/containers/buildah.git ~/go/src/github.com/containers/buildah
+          git clone -b v1.36.0 --depth=1 https://github.com/containers/buildah.git ~/go/src/github.com/containers/buildah
           pushd ~/go/src/github.com/containers/buildah
           make buildah docs
           sudo make install
           buildah version
           popd
-      - name: Download youki
+      - name: Upgrade crun
         run: |
-          wget https://github.com/containers/youki/releases/download/v${VERSION}/youki-${VERSION}-x86_64-musl.tar.gz
-          tar xOf youki-${VERSION}-x86_64-musl.tar.gz youki > /opt/youki
-          rm -f youki-${VERSION}-x86_64-musl.tar.gz
-          chmod +x /opt/youki
+          wget https://github.com/containers/crun/releases/download/${VERSION}/crun-${VERSION}-linux-amd64-disable-systemd
+          chmod a+x crun-${VERSION}-linux-amd64-disable-systemd
+          sudo mv crun-${VERSION}-linux-amd64-disable-systemd /usr/bin/crun
         env:
-          VERSION: 0.3.2
+          VERSION: 1.15
       - run: sudo buildah build --tag ghcr.io/jurriaan/meshstellar:${{ github.sha }}-amd64 --platform linux/amd64 -f Containerfile.github .
-        env:
-          BUILDAH_RUNTIME: /opt/youki
       - run: sudo buildah build --tag ghcr.io/jurriaan/meshstellar:${{ github.sha }}-arm64 --platform linux/arm64 -f Containerfile-arm64.github .
-        env:
-          BUILDAH_RUNTIME: /opt/youki
       - run: sudo buildah push ghcr.io/jurriaan/meshstellar:${{ github.sha }}-amd64
       - run: sudo buildah push ghcr.io/jurriaan/meshstellar:${{ github.sha }}-arm64
       - run: sudo buildah manifest create ghcr.io/jurriaan/meshstellar:${{ github.sha }} ghcr.io/jurriaan/meshstellar:${{ github.sha }}-amd64 ghcr.io/jurriaan/meshstellar:${{ github.sha }}-arm64
