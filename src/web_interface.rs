@@ -801,10 +801,16 @@ async fn style_json(web_config: State<WebConfig>) -> impl IntoResponse {
             "data": { "type": "FeatureCollection", "features": [] },
             "promoteId": "id",
         },
+        "neighbors-snr": {
+            "type": "geojson",
+            "buffer": 512,
+            "maxzoom": 10, // This is a separate source with a lower maxzoom to fix rendering issues with SNR values.
+            "data": { "type": "FeatureCollection", "features": [] },
+        },
         "neighbors": {
             "type": "geojson",
             "buffer": 512,
-            "maxzoom": 10,
+            "maxzoom": 16,
             "data": { "type": "FeatureCollection", "features": [] },
         },
         "positions": {
@@ -848,9 +854,27 @@ async fn style_json(web_config: State<WebConfig>) -> impl IntoResponse {
 
     let stellar_layers = vec![
         json!({
-            "id": "neighbor-snr",
+            "id": "neighbor-direction-layer",
             "type": "symbol",
             "source": "neighbors",
+            "layout": {
+                "symbol-placement": "line",
+                "symbol-avoid-edges": true,
+                "symbol-z-order": "source",
+                "symbol-spacing": 250,
+                "icon-image": "arrow-symbol",
+                "icon-size": 0.6,
+                "icon-overlap": "never",
+                "icon-optional": true,
+                "icon-rotation-alignment": "map",
+                "icon-keep-upright": false,
+            },
+            "filter": ["==", "directional", true]
+        }),
+        json!({
+            "id": "neighbor-snr",
+            "type": "symbol",
+            "source": "neighbors-snr",
             "layout": {
                 "symbol-placement": "line-center",
                 "symbol-avoid-edges": true,

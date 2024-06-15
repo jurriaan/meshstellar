@@ -188,39 +188,45 @@ function _updateNodeGeoJSON() {
         .filter((node) => node.neighbors && node.neighbors.length > 0 && (selectedIndex == -1 || node.selected))
         .flatMap((node) => {
             return node.neighbors.map((neighbor) => {
-                const nodes = [node.id, neighbor.neighbor].sort()
+                const nodes = [node.id, neighbor.neighbor].sort();
+                const key = nodes[0] + "|" + nodes[1];
 
                 return {
-                    a: nodes[0],
-                    b: nodes[1],
+                    key: key,
+                    source: node.id,
+                    target: neighbor.neighbor,
                     snr: neighbor.snr,
                     timestamp: neighbor.timestamp
                 };
             });
         })
-        .filter((neighbor) => nodeFeaturesById[neighbor.a] && nodeFeaturesById[neighbor.b])
+        .filter((neighbor) => nodeFeaturesById[neighbor.source] && nodeFeaturesById[neighbor.target])
         .sort((neighborA, neighborB) => neighborB.timestamp - neighborA.timestamp);
 
-    const neighborSet = new Set();
+    const neighborCounts = {};
+    neighbors.forEach((neighbor) => {
+        neighborCounts[neighbor.key] = (neighborCounts[neighbor.key] || 0) + 1;
+    });
+
     const neighborFeatures = [];
     neighbors.forEach((neighbor) => {
-        const key = neighbor.a + "-" + neighbor.b;
-
-        if (neighborSet.has(key)) return;
-        neighborSet.add(key);
+        if (!neighborCounts.hasOwnProperty(neighbor.key)) return;
+        const isBidirectional = neighborCounts[neighbor.key] > 1;
+        delete neighborCounts[neighbor.key];
 
         neighborFeatures.push({
             "type": "Feature",
             "geometry": {
                 "type": "LineString",
                 "coordinates": [
-                    nodeFeaturesById[neighbor.a].geometry.coordinates,
-                    nodeFeaturesById[neighbor.b].geometry.coordinates,
+                    nodeFeaturesById[neighbor.source].geometry.coordinates,
+                    nodeFeaturesById[neighbor.target].geometry.coordinates,
                 ]
             },
             "properties": {
-                "id": key,
-                "snr": neighbor.snr
+                "id": neighbor.key,
+                "snr": neighbor.snr,
+                "directional": !isBidirectional,
             }
         });
     });
@@ -229,6 +235,7 @@ function _updateNodeGeoJSON() {
 
     map?.getSource('nodes')?.setData(nodeGeoJSON);
     map?.getSource('neighbors')?.setData(neighborsGeoJSON);
+    map?.getSource('neighbors-snr')?.setData(neighborsGeoJSON);
 
     if (!loadingIsFinished) {
         loadingFinished();
@@ -336,9 +343,11 @@ function loadMap() {
     });
 
     let image = map.loadImage('/static/node-symbol.png');
+    let arrowImage = map.loadImage('/static/arrow.png');
 
     map.once("load", async () => {
         map.addImage('node-symbol', (await image).data, { sdf: true });
+        map.addImage('arrow-symbol', (await arrowImage).data, { sdf: true });
     });
 
     map.on('click', 'node-symbols', (e) => {
