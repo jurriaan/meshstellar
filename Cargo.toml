@@ -32,6 +32,7 @@ plotters = { version = "0.3.5", default-features = false, features = ["chrono", 
 dirs = "5.0.1"
 serde = "1.0.202"
 num-traits = "0.2.19"
+url = "2.5.2"
 
 [build-dependencies]
 vergen-gitcl = { version = "1.0.0-beta.2", features = ["build", "cargo", "rustc"] }
