@@ -1,4 +1,4 @@
-FROM docker.io/library/rust:1.77-alpine AS chef
+FROM docker.io/library/rust:1.84-alpine AS chef
 USER root
 RUN apk add --no-cache build-base mingw-w64-gcc protobuf-dev git
 COPY rust-toolchain.toml rust-toolchain.toml

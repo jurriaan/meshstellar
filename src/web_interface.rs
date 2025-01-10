@@ -654,7 +654,7 @@ async fn node_details(
             latitude,
             longitude,
             altitude,
-            '[]' AS neighbor_json,
+            '[]' AS "neighbor_json: String",
             updated_at
         FROM nodes
         WHERE node_id = ?
@@ -692,7 +692,11 @@ async fn node_details(
     let gateway_packet_info: Vec<GatewayPacketInfo> = sqlx::query_as!(
         GatewayPacketInfo,
         r#"
-            SELECT gateway_id as "gateway_id!", COUNT(*) as num_packets FROM mesh_packets WHERE from_id = ?1 AND created_at > ?2 AND gateway_id IS NOT NULL GROUP BY 1 ORDER BY num_packets DESC LIMIT 50
+            SELECT
+                gateway_id as "gateway_id!",
+                COUNT(*) as "num_packets!: i64"
+            FROM mesh_packets
+            WHERE from_id = ?1 AND created_at > ?2 AND gateway_id IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 50
         "#,
         node_id, min_time_nanos
     )
@@ -758,15 +762,15 @@ async fn create_plots(
 ) -> axum::response::Result<Vec<PlotData>> {
     let mut entries_map : HashMap<String, Vec<(DateTime<FixedOffset>, f64)>>= sqlx::query!(
         r#"
-            SELECT * FROM (SELECT 'R' as plot_type, rx_time as "time!", CAST(rx_rssi AS REAL) AS "value!" FROM mesh_packets WHERE from_id = ?1 AND rx_time IS NOT NULL AND rx_time > ?2 AND rx_rssi != 0 AND gateway_id = ?3 ORDER BY "time!" DESC LIMIT 100)
-            UNION ALL SELECT * FROM (SELECT 'S' as plot_type, rx_time as "time!", rx_snr AS "value!" FROM mesh_packets WHERE from_id = ?1 AND rx_time IS NOT NULL AND rx_time > ?2 AND rx_snr != 0 AND gateway_id = ?3 ORDER BY "time!" DESC LIMIT 100)
-            UNION ALL SELECT * FROM (SELECT 'C' as plot_type, time as "time!", channel_utilization AS "value!" FROM device_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND channel_utilization > 0 ORDER BY "time!" DESC LIMIT 100)
-            UNION ALL SELECT * FROM (SELECT 'A' as plot_type, time as "time!", air_util_tx AS "value!" FROM device_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND air_util_tx > 0 ORDER BY "time!" DESC LIMIT 100)
-            UNION ALL SELECT * FROM (SELECT 'V' as plot_type, time as "time!", voltage AS "value!" FROM device_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND voltage > 0 ORDER BY "time!" DESC LIMIT 100)
-            UNION ALL SELECT * FROM (SELECT 'T' as plot_type, time as "time!", temperature AS "value!" FROM environment_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND temperature > -100 ORDER BY "time!" DESC LIMIT 100)
-            UNION ALL SELECT * FROM (SELECT 'H' as plot_type, time as "time!", relative_humidity AS "value!" FROM environment_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND relative_humidity > 0 ORDER BY "time!" DESC LIMIT 100)
-            UNION ALL SELECT * FROM (SELECT 'B' as plot_type, time as "time!", barometric_pressure AS "value!" FROM environment_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND barometric_pressure > 0 ORDER BY "time!" DESC LIMIT 100)
-            ORDER BY plot_type, "time!" DESC;
+            SELECT * FROM (SELECT 'R' as "plot_type!: String", rx_time as "time!", CAST(rx_rssi AS REAL) AS "value!: f64" FROM mesh_packets WHERE from_id = ?1 AND rx_time IS NOT NULL AND rx_time > ?2 AND rx_rssi != 0 AND gateway_id = ?3 ORDER BY "time!" DESC LIMIT 100)
+            UNION ALL SELECT * FROM (SELECT 'S' as "plot_type!: String", rx_time as "time!", rx_snr AS "value!: f64" FROM mesh_packets WHERE from_id = ?1 AND rx_time IS NOT NULL AND rx_time > ?2 AND rx_snr != 0 AND gateway_id = ?3 ORDER BY "time!" DESC LIMIT 100)
+            UNION ALL SELECT * FROM (SELECT 'C' as "plot_type!: String", time as "time!", channel_utilization AS "value!: f64" FROM device_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND channel_utilization > 0 ORDER BY "time!" DESC LIMIT 100)
+            UNION ALL SELECT * FROM (SELECT 'A' as "plot_type!: String", time as "time!", air_util_tx AS "value!: f64" FROM device_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND air_util_tx > 0 ORDER BY "time!" DESC LIMIT 100)
+            UNION ALL SELECT * FROM (SELECT 'V' as "plot_type!: String", time as "time!", voltage AS "value!: f64" FROM device_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND voltage > 0 ORDER BY "time!" DESC LIMIT 100)
+            UNION ALL SELECT * FROM (SELECT 'T' as "plot_type!: String", time as "time!", temperature AS "value!: f64" FROM environment_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND temperature > -100 ORDER BY "time!" DESC LIMIT 100)
+            UNION ALL SELECT * FROM (SELECT 'H' as "plot_type!: String", time as "time!", relative_humidity AS "value!: f64" FROM environment_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND relative_humidity > 0 ORDER BY "time!" DESC LIMIT 100)
+            UNION ALL SELECT * FROM (SELECT 'B' as "plot_type!: String", time as "time!", barometric_pressure AS "value!: f64" FROM environment_metrics WHERE node_id = ?1 AND time IS NOT NULL AND time > ?2 AND barometric_pressure > 0 ORDER BY "time!" DESC LIMIT 100)
+            ORDER BY 1, 2 DESC;
         "#,
         node_id, min_time, gateway_id
     )
@@ -998,12 +1002,12 @@ pub async fn start_server(pool: SqlitePool, http_addr: String) -> anyhow::Result
         .route("/", get(index))
         .route("/events", get(sse_handler))
         .route(
-            "/node/:node_id/positions.geojson",
+            "/node/{node_id}/positions.geojson",
             get(node_positions_geojson),
         )
-        .route("/node/:node_id/details.html", get(node_details))
+        .route("/node/{node_id}/details.html", get(node_details))
         .route("/map/style.json", get(style_json))
-        .route("/static/*file", get(static_handler))
+        .route("/static/{*file}", get(static_handler))
         .fallback_service(get(not_found))
         .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http())
