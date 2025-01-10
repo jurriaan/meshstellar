@@ -444,7 +444,7 @@ async fn handle_waypoint_payload(
     if let Ok(waypoint_payload) = Waypoint::decode(&*data.payload) {
         let expire =
             none_if_default(waypoint_payload.expire as i64).map(|expire| expire * 1_000_000_000);
-        let locked_to = none_if_default(waypoint_payload.locked_to as i32);
+        let locked_to = none_if_default(waypoint_payload.locked_to as u32);
         let icon = if waypoint_payload.icon == 0 {
             String::new()
         } else {
@@ -542,7 +542,7 @@ async fn create_nodes_if_not_exist(
         .fetch_all(&mut **txn)
         .await?
         .into_iter()
-        .map(|row| row.get::<i32, _>("node_id") as u32)
+        .map(|row| row.get::<u32, _>("node_id"))
         .collect();
     for node_id in node_ids.difference(&existing_nodes) {
         if *node_id != 0 && *node_id != 0xFFFFFFFF {
