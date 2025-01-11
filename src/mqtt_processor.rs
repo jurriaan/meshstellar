@@ -50,7 +50,7 @@ pub async fn start_server(pool: SqlitePool) -> anyhow::Result<()> {
                     ServiceEnvelopeSelectResult,
                     "INSERT INTO service_envelopes (payload_data, hash, created_at)
                  VALUES (?, ?, ?)
-                 RETURNING id, hash, payload_data",
+                 RETURNING id, hash, payload_data, created_at",
                     raw_message,
                     raw_message_hash, // Convert hash to bytes if not already in this format
                     created_at,

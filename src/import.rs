@@ -25,9 +25,12 @@ use tracing::{error, info, warn};
 #[error("Mesh packet processing error: {0}")]
 struct MeshPacketProcessingError(String);
 
-async fn ensure_node_exists(txn: &mut SqliteConnection, packet: &MeshPacket) -> anyhow::Result<()> {
+async fn ensure_node_exists(
+    txn: &mut SqliteConnection,
+    packet: &MeshPacket,
+    received_at: i64,
+) -> anyhow::Result<()> {
     if packet.from != 0 && packet.from != 0xFFFFFFFF {
-        let now = Utc::now().timestamp_nanos_opt().unwrap();
         let user_id = format!("!{:08x}", packet.from);
         let rx_time = packet.rx_time as i64 * 1_000_000_000;
 
@@ -42,7 +45,7 @@ async fn ensure_node_exists(txn: &mut SqliteConnection, packet: &MeshPacket) -> 
             packet.rx_rssi,
             packet.hop_start,
             packet.hop_limit,
-            now
+            received_at,
         )
         .execute(txn)
         .await?;
@@ -56,16 +59,18 @@ async fn process_mesh_packet(
     gateway_id: String,
     raw_message_hash: &[u8],
     packet: &MeshPacket,
+    received_at: i64,
 ) -> anyhow::Result<()> {
     if let Some(Decoded(ref data)) = packet.payload_variant {
         let (mesh_repeat_id, node_exists) =
             fetch_mesh_repeat_and_node_exists(packet, txn, data, raw_message_hash).await?;
 
         if !node_exists {
-            ensure_node_exists(txn, packet).await?;
+            ensure_node_exists(txn, packet, received_at).await?;
         }
 
-        let mesh_packet_id = create_packet(gateway_id, packet, data, raw_message_hash, txn).await?;
+        let mesh_packet_id =
+            create_packet(gateway_id, packet, data, raw_message_hash, txn, received_at).await?;
 
         if mesh_repeat_id != 0 {
             let _ = sqlx::query!(
@@ -82,7 +87,6 @@ async fn process_mesh_packet(
             ))))
         } else {
             let rx_time_nanos = packet.rx_time as i64 * 1_000_000_000;
-            let now = Utc::now().timestamp_nanos_opt().unwrap();
 
             let _ = sqlx::query!(
                 "UPDATE nodes
@@ -93,7 +97,7 @@ async fn process_mesh_packet(
                 packet.rx_rssi, // New last_rx_rssi value
                 packet.hop_start, // New last_hop_start value
                 packet.hop_limit, // New last_hop_limit value
-                now,
+                received_at,
                 packet.from,    // node_id condition
             )
             .execute(&mut **txn)
@@ -566,6 +570,7 @@ async fn create_packet(
     data: &proto::meshtastic::Data,
     raw_message_hash: &[u8],
     txn: &mut SqliteConnection,
+    received_at: i64,
 ) -> anyhow::Result<i64> {
     let now = Utc::now().timestamp_nanos_opt().unwrap();
     let source = none_if_default(data.source as i64);
@@ -581,10 +586,10 @@ async fn create_packet(
             gateway_id, from_id, to_id, channel_id, unique_id, portnum,
             payload_data, rx_time, rx_snr, rx_rssi, hop_start, hop_limit,
             want_ack, want_response, source, dest, request_id, reply_id,
-            emoji, priority, hash, created_at
+            emoji, priority, hash, created_at, received_at
         )
         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14,
-                ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22)
+                ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23)
         RETURNING id",
         gateway_id,
         packet.from,
@@ -607,7 +612,8 @@ async fn create_packet(
         emoji,
         packet.priority,
         raw_message_hash,
-        now
+        now,
+        received_at,
     )
     .fetch_one(txn)
     .await?;
@@ -619,10 +625,18 @@ async fn handle_raw_service_envelope(
     txn: &mut PoolConnection<DB>,
     raw_message_hash: &[u8],
     service_envelope: &[u8],
+    created_at: i64,
 ) -> anyhow::Result<()> {
     if let Ok(message) = ServiceEnvelope::decode(service_envelope) {
         if let Some(packet) = message.packet {
-            process_mesh_packet(txn, message.gateway_id, raw_message_hash, &packet).await?;
+            process_mesh_packet(
+                txn,
+                message.gateway_id,
+                raw_message_hash,
+                &packet,
+                created_at,
+            )
+            .await?;
         }
     }
 
@@ -644,7 +658,7 @@ pub async fn start_server(pool: SqlitePool) -> anyhow::Result<()> {
 async fn process_service_envelopes(pool: &SqlitePool) -> Result<(), anyhow::Error> {
     let entities = sqlx::query_as!(
         ServiceEnvelopeSelectResult,
-        "SELECT id, hash, payload_data FROM service_envelopes WHERE processed_at IS NULL ORDER BY created_at"
+        "SELECT id, hash, payload_data, created_at FROM service_envelopes WHERE processed_at IS NULL ORDER BY created_at"
     ).fetch_all(pool)
         .await?;
 
@@ -662,9 +676,13 @@ pub async fn process_service_envelope(
     txn: &mut PoolConnection<DB>,
     service_envelope: ServiceEnvelopeSelectResult,
 ) -> Result<(), anyhow::Error> {
-    let result =
-        handle_raw_service_envelope(txn, &service_envelope.hash, &service_envelope.payload_data)
-            .await;
+    let result = handle_raw_service_envelope(
+        txn,
+        &service_envelope.hash,
+        &service_envelope.payload_data,
+        service_envelope.created_at,
+    )
+    .await;
     if let Err(err) = result {
         if let Some(MeshPacketProcessingError(_)) = err.downcast_ref() {
             warn!("Skipping packet after processing error: {}", err);
