@@ -445,7 +445,7 @@ async fn handle_waypoint_payload(
     if let Ok(waypoint_payload) = Waypoint::decode(&*data.payload) {
         let expire =
             none_if_default(waypoint_payload.expire as i64).map(|expire| expire * 1_000_000_000);
-        let locked_to = none_if_default(waypoint_payload.locked_to as u32);
+        let locked_to = none_if_default(waypoint_payload.locked_to);
         let icon = if waypoint_payload.icon == 0 {
             String::new()
         } else {
