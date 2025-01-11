@@ -40,20 +40,22 @@
     <dt>Message</dt>
     <dd>{{message}}</dd>
     {% when Payload::Waypoint with (waypoint) %}
-    {% if waypoint.name != "" %}
+    {% if let Some(name) = waypoint.name %}
     <dt>Name</dt>
-    <dd>{{waypoint.name}}</dd>
+    <dd>{{name}}</dd>
     {% endif %}
-    {% if waypoint.description != "" %}
+    {% if let Some(description) = waypoint.description %}
     <dt>Description</dt>
-    <dd>{{waypoint.description}}</dd>
+    <dd>{{description}}</dd>
     {% endif %}
-    {% if waypoint.icon != "" %}
+    {% if let Some(icon) = waypoint.icon %}
     <dt>Icon</dt>
-    <dd>{{waypoint.icon}}</dd>
+    <dd>{{icon}}</dd>
     {% endif %}
+    {% if let (Some(longitude), Some(latitude)) = (waypoint.longitude, waypoint.latitude) %}
     <dt>Location</dt>
-    <dd>{{self::format_mesh_gps(waypoint.latitude, waypoint.longitude)}}</dd>
+    <dd>{{self::format_mesh_gps(latitude, longitude)}}</dd>
+    {% endif %}
     {% if let Some(expire) = waypoint.expire %}
     <dt>Expire</dt>
     <dd>{{self::format_timestamp(expire)}}</dd>
@@ -63,49 +65,59 @@
     <dd><span class="node-name fetch" data-node-id="{{ locked_to|hex }}">!{{ locked_to|hex }}</span></dd>
     {% endif %}
     {% when Payload::Position with (position) %}
-    {% if position.seq_number != 0 %}
+    {% if let Some(seq_number) = position.seq_number %}
     <dt>Seq #</dt>
-    <dd>{{position.seq_number}}</dd>
+    <dd>{{seq_number}}</dd>
     {% endif %}
+    {% if let (Some(longitude), Some(latitude)) = (position.longitude, position.latitude) %}
     <dt>Location</dt>
-    <dd>{{self::format_mesh_gps(position.latitude, position.longitude)}}</dd>
-    {% if position.altitude != 0 %}
+    <dd>{{self::format_mesh_gps(latitude, longitude)}}</dd>
+    {% endif %}
+    {% if let Some(altitude) = position.altitude %}
     <dt>Altitude</dt>
-    <dd>{{position.altitude}} m</dd>
+    <dd>{{altitude}} m</dd>
     {% endif %}
-    {% if position.ground_speed != 0 %}
+    {% if let Some(ground_speed) = position.ground_speed %}
     <dt>Ground speed</dt>
-    <dd>{{position.ground_speed}} m/s</dd>
+    <dd>{{ground_speed}} m/s</dd>
     {% endif %}
-    {% if position.ground_track != 0 %}
+    {% if let Some(ground_track) = position.ground_track %}
     <dt>Ground track</dt>
-    <dd>{{"{:.2}°"|format(position.ground_track|into_f64_ref * 1e-5)}}</dd>
+    <dd>{{"{:.2}°"|format(ground_track|into_f64_ref * 1e-5)}}</dd>
     {% endif %}
-    {% if position.sats_in_view != 0 %}
+    {% if let Some(sats_in_view) = position.sats_in_view %}
     <dt>Sats in view</dt>
-    <dd>{{position.sats_in_view}}</dd>
+    <dd>{{sats_in_view}}</dd>
     {% endif %}
-    {% if position.precision_bits != 0 %}
+    {% if let Some(precision_bits) = position.precision_bits %}
     <dt>Precision bits</dt>
-    <dd>{{position.precision_bits}}</dd>
+    <dd>{{precision_bits}}</dd>
     {% endif %}
     {% when Payload::DeviceMetrics with (metrics) %}
     {% if let Some(time) = metrics.time %}
     <dt>Time</dt>
     <dd>{{self::format_timestamp(time)}}</dd>
     {% endif %}
+    {% if let Some(battery_level) = metrics.battery_level %}
     <dt>Battery Level</dt>
-    <dd>{{metrics.battery_level}}%</dd>
+    <dd>{{battery_level}}%</dd>
+    {% endif %}
+    {% if let Some(voltage) = metrics.voltage %}
     <dt>Voltage</dt>
-    <dd>{{"{:.2} V"|format(metrics.voltage)}}</dd>
+    <dd>{{"{:.2} V"|format(voltage)}}</dd>
+    {% endif %}
+    {% if let Some(channel_utilization) = metrics.channel_utilization %}
     <dt>Channel util</dt>
-    <dd>{{"{:.2}%"|format(metrics.channel_utilization)}}</dd>
+    <dd>{{"{:.2}%"|format(channel_utilization)}}</dd>
+    {% endif %}
+    {% if let Some(air_util_tx) = metrics.air_util_tx %}
     <dt>Air util tx</dt>
-    <dd>{{"{:.2}%"|format(metrics.air_util_tx)}}</dd>
-    {%- if metrics.uptime_seconds > 0 ~%}
+    <dd>{{"{:.2}%"|format(air_util_tx)}}</dd>
+    {% endif %}
+    {%- if let Some(uptime_seconds) = metrics.uptime_seconds ~%}
     <dt>Uptime</dt>
     <dd>
-        {{self::format_duration_sec(metrics.uptime_seconds)}}
+        {{self::format_duration_sec(uptime_seconds)}}
     </dd>
     {%- endif -%}
     {% when Payload::EnvironmentMetrics with (metrics) %}
@@ -113,54 +125,54 @@
     <dt>Time</dt>
     <dd>{{self::format_timestamp(time)}}</dd>
     {% endif %}
-    {% if metrics.temperature != 0.0 %}
+    {% if let Some(temperature) = metrics.temperature %}
     <dt>Temperature</dt>
-    <dd>{{"{:.2} °C"|format(metrics.temperature)}}</dd>
+    <dd>{{"{:.2} °C"|format(temperature)}}</dd>
     {% endif %}
-    {% if metrics.relative_humidity != 0.0 %}
+    {% if let Some(relative_humidity) = metrics.relative_humidity %}
     <dt>Humidity</dt>
-    <dd>{{"{:.2}%"|format(metrics.relative_humidity)}}</dd>
+    <dd>{{"{:.2}%"|format(relative_humidity)}}</dd>
     {% endif %}
-    {% if metrics.barometric_pressure != 0.0 %}
+    {% if let Some(barometric_pressure) = metrics.barometric_pressure %}
     <dt>Pressure</dt>
-    <dd>{{"{:.1} hPa"|format(metrics.barometric_pressure)}}</dd>
+    <dd>{{"{:.1} hPa"|format(barometric_pressure)}}</dd>
     {% endif %}
-    {% if metrics.gas_resistance != 0.0 %}
+    {% if let Some(gas_resistance) = metrics.gas_resistance %}
     <dt>Gas resistance</dt>
-    <dd>{{"{:.2}"|format(metrics.gas_resistance)}}</dd>
+    <dd>{{"{:.2}"|format(gas_resistance)}}</dd>
     {% endif %}
-    {% if metrics.iaq != 0 %}
+    {% if let Some(iaq) = metrics.iaq %}
     <dt>IAQ</dt>
-    <dd>{{ metrics.iaq }}</dd>
+    <dd>{{ iaq }}</dd>
     {% endif %}
     {% when Payload::PowerMetrics with (metrics) %}
     {% if let Some(time) = metrics.time %}
     <dt>Time</dt>
     <dd>{{self::format_timestamp(time)}}</dd>
     {% endif %}
-    {% if metrics.ch1_voltage != 0.0 %}
+    {% if let Some(ch1_voltage) = metrics.ch1_voltage %}
     <dt>CH1 Voltage</dt>
-    <dd>{{"{:.3} V"|format(metrics.ch1_voltage)}}</dd>
+    <dd>{{"{:.3} V"|format(ch1_voltage)}}</dd>
     {% endif %}
-    {% if metrics.ch1_current != 0.0 %}
+    {% if let Some(ch1_current) = metrics.ch1_current %}
     <dt>CH1 Current</dt>
-    <dd>{{"{:.6} A"|format(metrics.ch1_current)}}</dd>
+    <dd>{{"{:.6} A"|format(ch1_current)}}</dd>
     {% endif %}
-    {% if metrics.ch2_voltage != 0.0 %}
+    {% if let Some(ch2_voltage) = metrics.ch2_voltage %}
     <dt>CH2 Voltage</dt>
-    <dd>{{"{:.3} V"|format(metrics.ch2_voltage)}}</dd>
+    <dd>{{"{:.3} V"|format(ch2_voltage)}}</dd>
     {% endif %}
-    {% if metrics.ch2_current != 0.0 %}
+    {% if let Some(ch2_current) = metrics.ch2_current %}
     <dt>CH2 Current</dt>
-    <dd>{{"{:.6} A"|format(metrics.ch2_current)}}</dd>
+    <dd>{{"{:.6} A"|format(ch2_current)}}</dd>
     {% endif %}
-    {% if metrics.ch3_voltage != 0.0 %}
+    {% if let Some(ch3_voltage) = metrics.ch3_voltage %}
     <dt>CH3 Voltage</dt>
-    <dd>{{"{:.3} V"|format(metrics.ch3_voltage)}}</dd>
+    <dd>{{"{:.3} V"|format(ch3_voltage)}}</dd>
     {% endif %}
-    {% if metrics.ch3_current != 0.0 %}
+    {% if let Some(ch3_current) = metrics.ch3_current %}
     <dt>CH3 Current</dt>
-    <dd>{{"{:.6} A"|format(metrics.ch3_current)}}</dd>
+    <dd>{{"{:.6} A"|format(ch3_current)}}</dd>
     {% endif %}
     {% when Payload::Neighbors with (neighbors) %}
     {% for neighbor in neighbors %}
@@ -168,7 +180,9 @@
     <dd>
         <span class="node-name fetch" data-node-id="{{ neighbor.neighbor_node_id|hex }}">!{{
             neighbor.neighbor_node_id|hex }}</span>
-        <small>({{"SNR: {:.1}"|format(neighbor.snr)}})</small>
+        {% if let Some(snr) = neighbor.snr %}
+        <small>({{"SNR: {:.1}"|format(snr)}})</small>
+        {% endif %}
     </dd>
     {% endfor %}
     {% when Payload::Traceroute with (traceroute) %}

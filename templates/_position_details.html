@@ -32,31 +32,33 @@
     <dd>{% if packet.want_ack %}want ack{% endif %} {% if packet.want_response %}want response{% endif %}</dd>
     {% endif %}
     {% if let Payload::Position(position) = packet.payload %}
-    {% if position.seq_number != 0 %}
+    {% if let Some(seq_number) = position.seq_number %}
     <dt>Seq #</dt>
-    <dd>{{position.seq_number}}</dd>
+    <dd>{{seq_number}}</dd>
     {% endif %}
+    {% if let (Some(longitude), Some(latitude)) = (position.longitude, position.latitude) %}
     <dt>Location</dt>
-    <dd>{{self::format_mesh_gps(position.latitude, position.longitude)}}</dd>
-    {% if position.altitude != 0 %}
+    <dd>{{self::format_mesh_gps(latitude, longitude)}}</dd>
+    {% endif %}
+    {% if let Some(altitude) = position.altitude %}
     <dt>Altitude</dt>
-    <dd>{{position.altitude}} m</dd>
+    <dd>{{altitude}} m</dd>
     {% endif %}
-    {% if position.ground_speed != 0 %}
+    {% if let Some(ground_speed) = position.ground_speed %}
     <dt>Ground speed</dt>
-    <dd>{{position.ground_speed}} m/s</dd>
+    <dd>{{ground_speed}} m/s</dd>
     {% endif %}
-    {% if position.ground_track != 0 %}
+    {% if let Some(ground_track) = position.ground_track %}
     <dt>Ground track</dt>
-    <dd>{{"{:.2}°"|format(position.ground_track|into_f64_ref * 1e-5)}}</dd>
+    <dd>{{"{:.2}°"|format(ground_track|into_f64_ref * 1e-5)}}</dd>
     {% endif %}
-    {% if position.sats_in_view != 0 %}
+    {% if let Some(sats_in_view) = position.sats_in_view %}
     <dt>Sats in view</dt>
-    <dd>{{position.sats_in_view}}</dd>
+    <dd>{{sats_in_view}}</dd>
     {% endif %}
-    {% if position.precision_bits != 0 %}
+    {% if let Some(precision_bits) = position.precision_bits %}
     <dt>Precision bits</dt>
-    <dd>{{position.precision_bits}}</dd>
+    <dd>{{precision_bits}}</dd>
     {% endif %}
     {% endif %}
 </dl>

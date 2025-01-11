@@ -154,7 +154,7 @@ mod filters {
         Ok(number.abs())
     }
 
-    pub fn into_f64_ref<T>(number: &T) -> ::askama::Result<f64>
+    pub fn into_f64_ref<T>(number: &&T) -> ::askama::Result<f64>
     where
         T: NumCast,
     {

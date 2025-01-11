@@ -506,7 +506,7 @@ impl FromIterator<MeshPacketDto> for FeatureCollection {
             iter.into_iter()
                 .filter_map(|packet| {
                     if let Payload::Position(pos) = packet.payload {
-                        let coordinates = vec![pos.longitude, pos.latitude, pos.altitude as f64];
+                        let coordinates = vec![pos.longitude.unwrap_or_default(), pos.latitude.unwrap_or_default(), pos.altitude.unwrap_or_default() as f64];
                         let geometry: Geometry = geojson::Value::Point(coordinates).into();
                         let id = geojson::feature::Id::Number(packet.id.into());
                         let template = PositionDetailsTemplate { packet };

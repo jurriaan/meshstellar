@@ -187,13 +187,14 @@ async fn handle_position_payload(
     txn: &mut PoolConnection<DB>,
 ) -> Result<(), anyhow::Error> {
     if let Ok(position_payload) = Position::decode(&*data.payload) {
-        if position_payload.latitude_i.unwrap_or(0) != 0 && position_payload.longitude_i.unwrap_or(0) != 0 {
+        if position_payload.latitude_i.is_some() && position_payload.longitude_i.is_some() {
             let timestamp = none_if_default(position_payload.timestamp).map(|_| {
                 position_payload.timestamp as i64 * 1000000000
                     + position_payload.timestamp_millis_adjust as i64 * 1000000
             });
-            let latitude = position_payload.latitude_i.unwrap_or(0) as f64 / 1e7;
-            let longitude = position_payload.longitude_i.unwrap_or(0) as f64 / 1e7;
+
+            let latitude = position_payload.latitude_i.map(|i| i as f64 / 1e7);
+            let longitude = position_payload.longitude_i.map(|i| i as f64 / 1e7);
             let time = position_payload.time as i64 * 1_000_000_000;
 
             let result = sqlx::query_as!(
@@ -453,8 +454,8 @@ async fn handle_waypoint_payload(
                 .unwrap_or_default()
         };
 
-        let latitude = waypoint_payload.latitude_i.unwrap_or(0) as f64 / 1e7;
-        let longitude = waypoint_payload.longitude_i.unwrap_or(0) as f64 / 1e7;
+        let latitude = waypoint_payload.latitude_i.map(|i| i as f64 / 1e7);
+        let longitude = waypoint_payload.longitude_i.map(|i| i as f64 / 1e7);
 
         sqlx::query!(
             "INSERT INTO waypoints (
