@@ -182,8 +182,8 @@ fn node_update_stream(
             last_updated_at = nodes.last().map(|n| n.updated_at).unwrap_or(last_updated_at);
 
             for node in nodes.into_iter() {
-                let geom = if let (Some(longitude), Some(latitude), Some(altitude)) = (node.longitude, node.latitude, node.altitude) {
-                    let geometry: Geometry = geojson::Value::Point(vec![longitude, latitude, altitude as f64]).into();
+                let geom = if let (Some(longitude), Some(latitude), altitude) = (node.longitude, node.latitude, node.altitude) {
+                    let geometry: Geometry = geojson::Value::Point(vec![longitude, latitude, altitude.unwrap_or_default() as f64]).into();
                     let mut properties = JsonObject::new();
                     let short_name = demoji(node.short_name.clone().unwrap_or_default().as_str());
                     let display_name = match short_name.trim() {
@@ -506,7 +506,11 @@ impl FromIterator<MeshPacketDto> for FeatureCollection {
             iter.into_iter()
                 .filter_map(|packet| {
                     if let Payload::Position(pos) = packet.payload {
-                        let coordinates = vec![pos.longitude.unwrap_or_default(), pos.latitude.unwrap_or_default(), pos.altitude.unwrap_or_default() as f64];
+                        let coordinates = vec![
+                            pos.longitude.unwrap_or_default(),
+                            pos.latitude.unwrap_or_default(),
+                            pos.altitude.unwrap_or_default() as f64,
+                        ];
                         let geometry: Geometry = geojson::Value::Point(coordinates).into();
                         let id = geojson::feature::Id::Number(packet.id.into());
                         let template = PositionDetailsTemplate { packet };
