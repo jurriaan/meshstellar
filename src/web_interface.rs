@@ -245,7 +245,8 @@ fn mesh_packet_stream(
                     want_ack,
                     want_response,
                     payload_data,
-                    created_at
+                    created_at,
+                    received_at
                 FROM mesh_packets
                 WHERE id IN (
                     SELECT id FROM mesh_packets
