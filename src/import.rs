@@ -658,7 +658,7 @@ pub async fn start_server(pool: SqlitePool) -> anyhow::Result<()> {
 async fn process_service_envelopes(pool: &SqlitePool) -> Result<(), anyhow::Error> {
     let entities = sqlx::query_as!(
         ServiceEnvelopeSelectResult,
-        "SELECT id, hash, payload_data, created_at FROM service_envelopes WHERE processed_at IS NULL ORDER BY created_at"
+        "SELECT id, hash, payload_data, created_at FROM service_envelopes WHERE processed_at IS NULL ORDER BY created_at LIMIT 100"
     ).fetch_all(pool)
         .await?;
 
