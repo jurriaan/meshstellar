@@ -21,7 +21,9 @@ fn main() -> Result<()> {
         .map(|p| p.unwrap().to_str().unwrap().to_string())
         .collect();
 
-    prost_build::compile_protos(&files[..], &["protobufs/"])?;
+    let mut config = prost_build::Config::new();
+    config.type_attribute(".", "#[allow(dead_code)]");
+    config.compile_protos(&files[..], &["protobufs/"])?;
     build_svg_symbol_sheet()?;
     compress_static_files()?;
     vergen()?;

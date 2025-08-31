@@ -1,7 +1,7 @@
 <li id="node-list-node-{{ node.node_id|hex }}" data-node-id="{{ node.node_id|hex }}" hx-swap-oob="if-exists" hx-on:click="selectNode(this)">
     <div hx-get="/node/{{ node.node_id|hex }}/details.html" hx-target="#sidebar-details" hx-swap="innerHTML">
         <span class="node-name">
-            {%- if let (Some(short_name), Some(long_name)) = (node.short_name|as_ref, node.long_name|as_ref) -%}
+            {%- if let (Some(short_name), Some(long_name)) = (node.short_name|ref, node.long_name|ref) -%}
                 <strong>[{{ short_name }}]</strong> {{ long_name }}
             {%- else -%}
                 <em>{{ node.user_id }}</em>
@@ -11,8 +11,8 @@
             <br />
             {{- self::icon("antenna")|safe ~}} <time datetime="{{ self::format_timestamp(updated_at) }}" class="relative">{{ updated_at }}</time>
 
-            {%- if last_rx_snr != 0.0|as_ref && last_rx_rssi != 0|as_ref ~%}
-                {%- if last_hop_start > 0|as_ref %}
+            {%- if last_rx_snr != 0.0|ref && last_rx_rssi != 0|ref ~%}
+                {%- if last_hop_start > 0|ref %}
                     <small>({{"SNR: {:.1}, RSSI: {}, hops: {}/{}"|format(last_rx_snr, last_rx_rssi, last_hop_start - last_hop_limit, last_hop_start)}})</small>
                 {%- else %}
                     <small>({{"SNR: {:.1}, RSSI: {}"|format(last_rx_snr, last_rx_rssi)}})</small>
@@ -26,13 +26,13 @@
         {%- if let (Some(temperature), Some(relative_humidity), Some(barometric_pressure)) = (node.temperature, node.relative_humidity, node.barometric_pressure) -%}
             <br />
             {{- self::icon("thermometer")|safe ~}}
-            {% if temperature != 0.0|as_ref %}
+            {% if temperature != 0.0|ref %}
                 {{~ "{:.1}°C"|format(temperature) ~}}
             {% endif %}
-            {% if relative_humidity != 0.0|as_ref %}
+            {% if relative_humidity != 0.0|ref %}
                 {{~ "{:.0}%"|format(relative_humidity) ~}}
             {% endif %}
-            {% if barometric_pressure != 0.0|as_ref %}
+            {% if barometric_pressure != 0.0|ref %}
                 {{~ "{:.1}hPa"|format(barometric_pressure) ~}}
             {% endif %}
         {%- endif -%}

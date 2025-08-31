@@ -134,11 +134,11 @@ fn format_duration_sec(duration_sec: &i64) -> String {
 }
 
 mod filters {
-    use askama::Error::Fmt;
     use num_traits::{NumCast, Signed};
-    use std::fmt::{self, LowerHex};
+    use std::fmt::{LowerHex};
 
-    pub fn hex<T>(num: &T) -> ::askama::Result<String>
+    pub fn hex<T>(num: &T,
+        _: &dyn askama::Values,) -> ::askama::Result<String>
     where
         T: LowerHex,
     {
@@ -147,17 +147,19 @@ mod filters {
     }
 
     /// Absolute value
-    pub fn abs_ref<T>(number: &T) -> ::askama::Result<T>
+    pub fn abs_ref<T>(number: &T,
+        _: &dyn askama::Values,) -> ::askama::Result<T>
     where
         T: Signed,
     {
         Ok(number.abs())
     }
 
-    pub fn into_f64_ref<T>(number: &&T) -> ::askama::Result<f64>
+    pub fn into_f64_ref<T>(number: &&T,
+        _: &dyn askama::Values,) -> ::askama::Result<f64>
     where
         T: NumCast,
     {
-        number.to_f64().ok_or(Fmt(fmt::Error))
+        number.to_f64().ok_or(::askama::Error::ValueMissing)
     }
 }

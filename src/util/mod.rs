@@ -70,6 +70,7 @@ pub async fn connect_to_mqtt() -> anyhow::Result<(EventLoop, AsyncClient)> {
 
     let mut mqttoptions = MqttOptions::new(mqtt_client_id, &mqtt_host, mqtt_port);
     mqttoptions.set_keep_alive(Duration::from_secs(mqtt_keep_alive));
+    mqttoptions.set_max_packet_size(102400, 102400);
 
     if mqtt_auth {
         let mqtt_username = config::get_config().get_string("mqtt_username")?;

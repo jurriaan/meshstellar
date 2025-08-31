@@ -18,7 +18,7 @@ pub fn try_into_response<T: ?Sized + Template>(tmpl: &T) -> Result<Response, Err
     Response::builder()
         .header(
             header::CONTENT_TYPE,
-            header::HeaderValue::from_static(T::MIME_TYPE),
+            "text/html"
         )
         .body(value)
         .map_err(|err| Error::Custom(err.into()))
