@@ -186,28 +186,46 @@
     </dd>
     {% endfor %}
     {% when Payload::Traceroute with (traceroute) %}
-    <dd>
-        {% if traceroute.is_response %}
-        Response
-        {% else %}
-        Request
-        {% endif %}
-    </dd>
-    <dt>Start</dt>
-    <dd>
-        <span class="node-name fetch" data-node-id="{{ traceroute.from_id|hex }}">!{{ traceroute.from_id|hex
-            }}</span>
-    </dd>
-    {% for node_id in traceroute.route %}
-    <dt>Hop</dt>
-    <dd>
-        <span class="node-name fetch" data-node-id="{{ node_id|hex }}">!{{ node_id|hex }}</span>
-    </dd>
-    {% endfor%}
-    <dt>End</dt>
-    <dd>
-        <span class="node-name fetch" data-node-id="{{ traceroute.to_id|hex }}">!{{ traceroute.to_id|hex }}</span>
-    </dd>
+    {% let unknown_snr = &-128 %}
+    {% if !traceroute.snr_towards.is_empty() %}
+        <dt>Route</dt>
+        <dd>
+            <dl class="traceroute">
+                <dt><span class="node-name fetch" data-node-id="{{ traceroute.from_id|hex }}">!{{ traceroute.from_id|hex }}</span></dt>
+                <dd>(initiator)</dd>
+                {% for node_id in traceroute.route %}
+                <dt><span class="node-name fetch" data-node-id="{{ node_id|hex }}">!{{ node_id|hex }}</span></dt>
+                <dd>
+                    <small>({% if let Some(snr) = traceroute.snr_towards.get(*loop.index0) %}{% if *snr == unknown_snr %}SNR: ?{% else %}SNR: {{"{:.1}"|format(*snr as f64 / 4.0)}}{% endif %}{% else %}SNR: ?{% endif %})</small>
+                </dd>
+                {% endfor %}
+                <dt><span class="node-name fetch" data-node-id="{{ traceroute.to_id|hex }}">!{{ traceroute.to_id|hex }}</span></dt>
+                <dd>
+                    <small>({% if let Some(snr) = traceroute.snr_towards.last() %}{% if *snr == unknown_snr %}SNR: ?{% else %}SNR: {{"{:.1}"|format(*snr as f64 / 4.0)}}{% endif %}{% else %}SNR: ?{% endif %})</small>
+                </dd>
+            </dl>
+        </dd>
+    {% endif %}
+
+    {% if !traceroute.snr_back.is_empty() %}
+        <dt>Route back</dt>
+        <dd>
+            <dl class="traceroute">
+                <dt><span class="node-name fetch" data-node-id="{{ traceroute.to_id|hex }}">!{{ traceroute.to_id|hex }}</span></dt>
+                <dd>(start)</dd>
+                {% for node_id in traceroute.route_back %}
+                <dt><span class="node-name fetch" data-node-id="{{ node_id|hex }}">!{{ node_id|hex }}</span></dt>
+                <dd>
+                    <small>({% if let Some(snr) = traceroute.snr_back.get(*loop.index0) %}{% if *snr == unknown_snr %}SNR: ?{% else %}SNR: {{"{:.1}"|format(*snr as f64 / 4.0)}}{% endif %}{% else %}SNR: ?{% endif %})</small>
+                </dd>
+                {% endfor %}
+                <dt><span class="node-name fetch" data-node-id="{{ traceroute.from_id|hex }}">!{{ traceroute.from_id|hex }}</span></dt>
+                <dd>
+                    <small>({% if let Some(snr) = traceroute.snr_back.last() %}{% if *snr == unknown_snr %}SNR: ?{% else %}SNR: {{"{:.1}"|format(*snr as f64 / 4.0)}}{% endif %}{% else %}SNR: ?{% endif %})</small>
+                </dd>
+            </dl>
+        </dd>
+    {% endif %}
     {% when Payload::Routing with (routing) %}
     {% if let Some(error_reason) = routing.error_reason %}
     <dt>Error reason</dt>

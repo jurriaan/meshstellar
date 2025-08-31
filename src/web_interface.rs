@@ -432,20 +432,20 @@ fn mesh_packet_stream(
                         if let Ok(route_discovery) = RouteDiscovery::decode(&*packet.payload_data) {
                             let is_response = !packet.want_response;
 
-                            packet.payload = Payload::Traceroute(if is_response {
-                                TracerouteDto {
-                                    from_id: packet.to_id,
-                                    to_id: packet.from_id,
-                                    is_response,
-                                    route: route_discovery.route
-                                }
+                            let (from_id, to_id) = if is_response {
+                                (packet.to_id, packet.from_id)
                             } else {
-                                TracerouteDto {
-                                    from_id: packet.from_id,
-                                    to_id: packet.to_id,
-                                    is_response,
-                                    route: route_discovery.route
-                                }
+                                (packet.from_id, packet.to_id)
+                            };
+
+                            packet.payload = Payload::Traceroute(TracerouteDto {
+                                from_id,
+                                to_id,
+                                is_response,
+                                route: route_discovery.route,
+                                route_back: route_discovery.route_back,
+                                snr_towards: route_discovery.snr_towards,
+                                snr_back: route_discovery.snr_back,
                             });
                         }
                     }
