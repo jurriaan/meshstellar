@@ -134,6 +134,7 @@ fn format_duration_sec(duration_sec: &i64) -> String {
 }
 
 mod filters {
+    use base64::prelude::*;
     use num_traits::{NumCast, Signed};
     use std::fmt::{LowerHex};
 
@@ -161,5 +162,9 @@ mod filters {
         T: NumCast,
     {
         number.to_f64().ok_or(::askama::Error::ValueMissing)
+    }
+
+    pub fn b64encode(data: &[u8], _: &dyn askama::Values) -> ::askama::Result<String> {
+        Ok(BASE64_STANDARD.encode(data))
     }
 }

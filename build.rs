@@ -52,8 +52,8 @@ fn compress_static_files() -> Result<()> {
     let out_path = Path::new(&env::var("OUT_DIR").unwrap()).to_owned();
 
     for entry in glob(static_pattern).expect("Failed to read glob pattern") {
-        if let Ok(path) = entry {
-            if let Some(path_str) = path.to_str() {
+        if let Ok(path) = entry
+            && let Some(path_str) = path.to_str() {
                 let target = out_path.join(path_str);
                 let directory = target
                     .components()
@@ -80,7 +80,6 @@ fn compress_static_files() -> Result<()> {
                     fs::copy(path_str, target).unwrap();
                 }
             }
-        }
     }
 
     // Output the path for use in include_str!
@@ -109,8 +108,8 @@ fn build_svg_symbol_sheet() -> Result<()> {
     for entry in glob(svg_pattern).expect("Failed to read glob pattern") {
         if let Ok(path) = entry {
             // Convert the path to a string for regex matching
-            if let Some(path_str) = path.to_str() {
-                if let Some(caps) = re.captures(path_str) {
+            if let Some(path_str) = path.to_str()
+                && let Some(caps) = re.captures(path_str) {
                     // Extract the file name without the extension
                     let id = caps.get(1).unwrap().as_str();
                     let content = fs::read_to_string(&path)?;
@@ -122,7 +121,6 @@ fn build_svg_symbol_sheet() -> Result<()> {
 
                     writeln!(outfile, "{}", symbol_content)?;
                 }
-            }
         }
     }
 

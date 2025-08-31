@@ -1318,6 +1318,7 @@ dependencies = [
  "askama",
  "async-stream",
  "axum",
+ "base64",
  "blake3",
  "chrono",
  "config",

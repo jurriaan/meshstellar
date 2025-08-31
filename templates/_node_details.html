@@ -27,6 +27,17 @@
     {%- endif -%}
 {%- endif -%}
 
+{%- if node.is_unmessagable == Some(1) -%}
+<p>Node is an infrastructure node and cannot receive direct messages.</p>
+{%- endif -%}
+
+{%- if let Some(public_key) = node.public_key|ref -%}
+<section class="public-key">
+    <h2>Public Key</h2>
+    <code style="word-break: break-all;">{{ public_key|b64encode }}</code>
+</section>
+{%- endif -%}
+
 {% if let Some(selected_node) = selected_node %}
 <section class="received-by-gateway">
 <h2>Received by</h2>

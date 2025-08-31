@@ -190,8 +190,8 @@ async fn handle_position_payload(
     mesh_packet_id: i64,
     txn: &mut PoolConnection<DB>,
 ) -> Result<(), anyhow::Error> {
-    if let Ok(position_payload) = Position::decode(&*data.payload) {
-        if position_payload.latitude_i.is_some() && position_payload.longitude_i.is_some() {
+    if let Ok(position_payload) = Position::decode(&*data.payload)
+        && position_payload.latitude_i.is_some() && position_payload.longitude_i.is_some() {
             let timestamp = none_if_default(position_payload.timestamp).map(|_| {
                 position_payload.timestamp as i64 * 1000000000
                     + position_payload.timestamp_millis_adjust as i64 * 1000000
@@ -253,8 +253,7 @@ async fn handle_position_payload(
             )
             .execute(&mut **txn)
             .await?;
-        }
-    };
+        };
     Ok(())
 }
 
@@ -406,8 +405,8 @@ async fn handle_nodeinfo_payload(
     if let Ok(node_info_payload) = User::decode(&*data.payload) {
         let result = sqlx::query_as!(
             ReturningId,
-            "INSERT INTO node_info (mesh_packet_id, node_id, user_id, long_name, short_name, hw_model_id, is_licensed, role)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+            "INSERT INTO node_info (mesh_packet_id, node_id, user_id, long_name, short_name, hw_model_id, is_licensed, role, public_key, is_unmessagable)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
             mesh_packet_id,
             packet.from,
             node_info_payload.id,
@@ -416,6 +415,8 @@ async fn handle_nodeinfo_payload(
             node_info_payload.hw_model,
             node_info_payload.is_licensed,
             node_info_payload.role,
+            node_info_payload.public_key,
+            node_info_payload.is_unmessagable
         )
         .fetch_one(&mut **txn)
         .await?;
@@ -423,7 +424,7 @@ async fn handle_nodeinfo_payload(
         // Update nodes table
         let _ = sqlx::query!(
             "UPDATE nodes
-            SET user_id = ?, long_name = ?, short_name = ?, hw_model_id = ?, is_licensed = ?, role = ?, last_node_info_id = ?
+            SET user_id = ?, long_name = ?, short_name = ?, hw_model_id = ?, is_licensed = ?, role = ?, last_node_info_id = ?, public_key = ?, is_unmessagable = ?
             WHERE node_id = ?",
             node_info_payload.id,
             node_info_payload.long_name,
@@ -432,6 +433,8 @@ async fn handle_nodeinfo_payload(
             node_info_payload.is_licensed,
             node_info_payload.role,
             result.id,
+            node_info_payload.public_key,
+            node_info_payload.is_unmessagable,
             packet.from,
         )
         .execute(&mut **txn)
@@ -627,8 +630,8 @@ async fn handle_raw_service_envelope(
     service_envelope: &[u8],
     created_at: i64,
 ) -> anyhow::Result<()> {
-    if let Ok(message) = ServiceEnvelope::decode(service_envelope) {
-        if let Some(packet) = message.packet {
+    if let Ok(message) = ServiceEnvelope::decode(service_envelope)
+        && let Some(packet) = message.packet {
             process_mesh_packet(
                 txn,
                 message.gateway_id,
@@ -638,7 +641,6 @@ async fn handle_raw_service_envelope(
             )
             .await?;
         }
-    }
 
     Ok(())
 }

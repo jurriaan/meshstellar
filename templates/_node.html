@@ -37,7 +37,7 @@
             {% endif %}
         {%- endif -%}
         {%- if let Some(role) = node.role -%}
-        <br>{{- self::icon("space-station")|safe ~}} {{ self::role_name(role) }}
+        <br>{{- self::icon("space-station")|safe ~}} {{ self::role_name(role) }}{%- if node.is_unmessagable == Some(1) %} (unmessagable){%- endif -%}
         {%- endif -%}
 
         {%- if let Some(geom) = geom -%}

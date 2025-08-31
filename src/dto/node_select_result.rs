@@ -30,4 +30,6 @@ pub struct NodeSelectResult {
     pub altitude: Option<i64>,
     pub neighbor_json: Option<String>,
     pub updated_at: i64,
+    pub public_key: Option<Vec<u8>>,
+    pub is_unmessagable: Option<i64>,
 }

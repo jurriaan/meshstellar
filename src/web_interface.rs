@@ -161,7 +161,9 @@ fn node_update_stream(
                     longitude,
                     altitude,
                     COALESCE(neighbor_json, '[]') AS neighbor_json,
-                    updated_at
+                    updated_at,
+                    public_key,
+                    is_unmessagable
                 FROM nodes
                 LEFT JOIN neighbors_per_node ON neighbors_per_node.node_id = nodes.node_id
                 WHERE updated_at > ?
@@ -660,7 +662,9 @@ async fn node_details(
             longitude,
             altitude,
             '[]' AS "neighbor_json: String",
-            updated_at
+            updated_at,
+            public_key,
+            is_unmessagable
         FROM nodes
         WHERE node_id = ?
         "#,

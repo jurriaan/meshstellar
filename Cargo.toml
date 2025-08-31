@@ -14,7 +14,7 @@ rust-embed = { version = "8.3", features = ["interpolate-folder-path"] }
 mime_guess = "2.0.4"
 tracing = { version = "0.1.40", features = ["release_max_level_info"] }
 tracing-subscriber = "0.3.18"
-askama = { version = "0.14.0"}
+askama = { version = "0.14.0" }
 tower-http = { version = "0.6.6", features = ["trace", "compression-gzip"] }
 tokio-stream = "0.1.15"
 async-stream = "0.3.5"
@@ -33,6 +33,7 @@ dirs = "6"
 serde = "1.0.202"
 num-traits = "0.2.19"
 url = "2.5.7"
+base64 = "0.22.1"
 
 [build-dependencies]
 vergen-gitcl = { version = "1.0.8", features = ["build", "cargo", "rustc"] }
