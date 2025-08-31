@@ -367,7 +367,7 @@ function loadMap() {
 
     // Automatically create a line from point data
     map.on("sourcedata", async (e) => {
-        if (e.sourceId == 'positions' && e.sourceDataType == 'metadata' && typeof e.source.data == 'string') {
+        if (e.sourceId == 'positions' && e.sourceDataType == 'metadata' && e.source.type == 'geojson' && e.source.data) {
             const positionsSource = map.getSource('positions');
             const positionsLineSource = map.getSource('positions-line');
             if (positionsSource) {
