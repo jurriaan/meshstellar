@@ -9,9 +9,14 @@ use crate::{
     },
     util::{none_if_default, DB},
 };
+use aes::Aes128;
 use anyhow::anyhow;
-
+use base64::Engine;
 use chrono::Utc;
+use ctr::{
+    cipher::{KeyIvInit, StreamCipher},
+    Ctr128BE,
+};
 use prost::Message;
 use sqlx::pool::PoolConnection;
 use sqlx::{Row, SqliteConnection, SqlitePool};
@@ -624,6 +629,37 @@ async fn create_packet(
     Ok(result.id)
 }
 
+fn create_nonce(packet_id: u32, from_node: u32) -> [u8; 16] {
+    let mut nonce = [0u8; 16];
+    nonce[0..8].copy_from_slice(&(packet_id as u64).to_le_bytes());
+    nonce[8..12].copy_from_slice(&from_node.to_le_bytes());
+    nonce[12..16].copy_from_slice(&0u32.to_le_bytes());
+    nonce
+}
+
+fn decrypt(
+    packet: &proto::meshtastic::MeshPacket,
+    encrypted_payload: &[u8],
+) -> Option<Vec<u8>> {
+    const DEFAULT_KEY: &str = "1PG7OiApB1nwvP+rz05pAQ==";
+
+    // The key is base64 encoded.
+    let key_bytes = base64::prelude::BASE64_STANDARD.decode(DEFAULT_KEY).ok()?;
+
+    if key_bytes.len() == 16 {
+        // AES-128
+        let nonce = create_nonce(packet.id, packet.from);
+        let mut cipher =
+            Ctr128BE::<Aes128>::new(key_bytes.as_slice().into(), &nonce.into());
+
+        let mut buf = encrypted_payload.to_vec();
+        cipher.apply_keystream(&mut buf);
+        Some(buf)
+    } else {
+        None
+    }
+}
+
 async fn handle_raw_service_envelope(
     txn: &mut PoolConnection<DB>,
     raw_message_hash: &[u8],
@@ -631,7 +667,18 @@ async fn handle_raw_service_envelope(
     created_at: i64,
 ) -> anyhow::Result<()> {
     if let Ok(message) = ServiceEnvelope::decode(service_envelope)
-        && let Some(packet) = message.packet {
+        && let Some(mut packet) = message.packet {
+            if let Some(proto::meshtastic::mesh_packet::PayloadVariant::Encrypted(
+                encrypted_payload,
+            )) = packet.payload_variant.clone()
+                && let Some(decrypted_payload) = decrypt(&packet, &encrypted_payload)
+                    && let Ok(data) = proto::meshtastic::Data::decode(&*decrypted_payload) {
+                        packet.payload_variant =
+                            Some(proto::meshtastic::mesh_packet::PayloadVariant::Decoded(
+                                data,
+                            ));
+                    }
+
             process_mesh_packet(
                 txn,
                 message.gateway_id,

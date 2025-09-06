@@ -34,6 +34,8 @@ serde = "1.0.202"
 num-traits = "0.2.19"
 url = "2.5.7"
 base64 = "0.22.1"
+aes = "0.8.4"
+ctr = "0.9.2"
 
 [build-dependencies]
 vergen-gitcl = { version = "1.0.8", features = ["build", "cargo", "rustc"] }
